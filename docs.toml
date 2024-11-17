@@ -1,0 +1,31 @@
+[llms-txt]
+output_dir = "data"
+
+# PyPI packages
+pypi = [
+    "openai",
+    "fastapi",
+    "pydantic",
+    "orjson",
+    "jiter",
+    "async-lru",
+    "cachetools",
+    "pyjwt",
+    "redis",
+    "backoff",
+    "tenacity",
+    "opentelemetry-api",
+    "pybase64",
+]
+
+# NPM packages
+npm = []
+
+# Cargo (Rust) packages
+cargo = []
+
+# Direct documentation URLs
+urls = ["https://docs.anthropic.com/llms-full.txt"]
+
+[project.scripts]
+docs = "llms_txt.main:main"

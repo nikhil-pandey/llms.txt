@@ -75,7 +75,9 @@ class GitHubFetcher:
             shutil.rmtree(path)
 
             # Clone repository with detected branch
-            return Repo.clone_from(url=url, to_path=path, depth=1, branch=default_branch)
+            return Repo.clone_from(
+                url=url, to_path=path, depth=1, branch=default_branch
+            )
 
         except GitCommandError as e:
             raise FetchError(f"Git operation failed: {str(e)}")

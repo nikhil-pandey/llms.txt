@@ -23,8 +23,16 @@ LOGGING_CONFIG: Dict[str, Any] = {
         },
     },
     "loggers": {
-        "": {"handlers": ["default", "file"], "level": "INFO", "propagate": True},  # root logger
-        "llms_txt": {"handlers": ["default", "file"], "level": "INFO", "propagate": False},
+        "": {
+            "handlers": ["default", "file"],
+            "level": "INFO",
+            "propagate": True,
+        },  # root logger
+        "llms_txt": {
+            "handlers": ["default", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 

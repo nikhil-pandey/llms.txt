@@ -1,7 +1,6 @@
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
 import aiofiles
 
@@ -42,7 +41,9 @@ class FileSystemStorage:
             }
 
             # Store metadata file at package directory level
-            async with aiofiles.open(package_dir / "metadata.json", "w", encoding="utf-8") as f:
+            async with aiofiles.open(
+                package_dir / "metadata.json", "w", encoding="utf-8"
+            ) as f:
                 await f.write(json.dumps(metadata, indent=2, cls=PathEncoder))
 
             # Create data directory for content files
@@ -58,7 +59,9 @@ class FileSystemStorage:
 
                 # Store directory metadata
                 async with aiofiles.open(
-                    package_dir / f"{dir_name.replace('/', '_')}_metadata.json", "w", encoding="utf-8"
+                    package_dir / f"{dir_name.replace('/', '_')}_metadata.json",
+                    "w",
+                    encoding="utf-8",
                 ) as f:
                     dir_data = directory.model_dump()
                     await f.write(json.dumps(dir_data, indent=2, cls=PathEncoder))
@@ -67,7 +70,9 @@ class FileSystemStorage:
                 for file_name, content in directory.content.items():
                     content_file = f"{dir_name}/{file_name}"
                     (data_dir / content_file).parent.mkdir(parents=True, exist_ok=True)
-                    async with aiofiles.open(data_dir / content_file, "w", encoding="utf-8") as f:
+                    async with aiofiles.open(
+                        data_dir / content_file, "w", encoding="utf-8"
+                    ) as f:
                         await f.write(content)
 
             return str(package_dir)

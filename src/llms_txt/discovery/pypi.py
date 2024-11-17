@@ -19,7 +19,9 @@ class PyPIProvider:
         self.client = httpx.AsyncClient()
         self.base_url = "https://pypi.org/pypi"
 
-    async def get_package_info(self, name: str, version: Optional[str] = None) -> Package:
+    async def get_package_info(
+        self, name: str, version: Optional[str] = None
+    ) -> Package:
         """Get package information from PyPI"""
         url = f"{self.base_url}/{name}/json"
         if version:

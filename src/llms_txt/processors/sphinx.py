@@ -46,7 +46,9 @@ class SphinxProcessor(BaseProcessor):
                 continue
             yield conf_file.parent
 
-    async def process(self, location: CodeLocation, directory: Path) -> ProcessedDirectory:
+    async def process(
+        self, location: CodeLocation, directory: Path
+    ) -> ProcessedDirectory:
         """Process Sphinx documentation directory"""
         try:
             # Read basic configuration without requiring Sphinx
@@ -68,11 +70,18 @@ class SphinxProcessor(BaseProcessor):
             )
 
         except Exception as e:
-            raise ProcessingError(f"Failed to process Sphinx directory {directory}: {str(e)}")
+            raise ProcessingError(
+                f"Failed to process Sphinx directory {directory}: {str(e)}"
+            )
 
     async def _read_basic_config(self, directory: Path) -> Dict:
         """Read basic configuration without requiring Sphinx installation"""
-        config: Dict = {"project": "unknown", "version": "0.1", "release": "0.1", "master_doc": "index"}
+        config: Dict = {
+            "project": "unknown",
+            "version": "0.1",
+            "release": "0.1",
+            "master_doc": "index",
+        }
 
         config_file = directory / "conf.py"
         if not config_file.exists():
@@ -90,11 +99,17 @@ class SphinxProcessor(BaseProcessor):
                     config[var] = match.group(1)
 
             # Extract extensions list
-            extensions_match = re.search(r"extensions\s*=\s*\[(.*?)\]", content, re.DOTALL)
+            extensions_match = re.search(
+                r"extensions\s*=\s*\[(.*?)\]", content, re.DOTALL
+            )
             if extensions_match:
                 # Clean and parse extensions list
                 extensions_str = extensions_match.group(1)
-                extensions = [ext.strip(" '\"") for ext in extensions_str.split(",") if ext.strip(" '\"")]
+                extensions = [
+                    ext.strip(" '\"")
+                    for ext in extensions_str.split(",")
+                    if ext.strip(" '\"")
+                ]
                 config["extensions"] = extensions
 
         except Exception as e:
@@ -141,7 +156,9 @@ class SphinxProcessor(BaseProcessor):
             try:
                 md_content = await self._convert_with_pandoc(rst_content)
             except Exception as e:
-                logger.debug(f"Pandoc conversion failed, falling back to basic conversion: {e}")
+                logger.debug(
+                    f"Pandoc conversion failed, falling back to basic conversion: {e}"
+                )
                 md_content = await self._convert_with_basic(rst_content)
 
             # Post-process the markdown content
@@ -156,13 +173,21 @@ class SphinxProcessor(BaseProcessor):
 
     async def _convert_with_pandoc(self, content: str) -> Optional[str]:
         """Convert RST to Markdown using pandoc if available"""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".rst", encoding="utf-8") as temp_rst:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".rst", encoding="utf-8"
+        ) as temp_rst:
             temp_rst.write(content)
             temp_rst.flush()
 
             try:
                 result = subprocess.run(
-                    ["pandoc", "--from=rst", "--to=gfm", "--wrap=none", temp_rst.name],  # GitHub-Flavored Markdown
+                    [
+                        "pandoc",
+                        "--from=rst",
+                        "--to=gfm",
+                        "--wrap=none",
+                        temp_rst.name,
+                    ],  # GitHub-Flavored Markdown
                     capture_output=True,
                     text=True,
                     check=True,
@@ -275,11 +300,15 @@ class SphinxProcessor(BaseProcessor):
         """Process RST roles"""
         # Convert :ref: roles
         content = re.sub(
-            r":ref:`([^`]+)`", lambda m: f'[{m.group(1)}](#{m.group(1).lower().replace(" ", "-")})', content
+            r":ref:`([^`]+)`",
+            lambda m: f'[{m.group(1)}](#{m.group(1).lower().replace(" ", "-")})',
+            content,
         )
 
         # Convert :doc: roles
-        content = re.sub(r":doc:`([^`]+)`", lambda m: f"[{m.group(1)}]({m.group(1)}.md)", content)
+        content = re.sub(
+            r":doc:`([^`]+)`", lambda m: f"[{m.group(1)}]({m.group(1)}.md)", content
+        )
 
         # Convert other common roles
         for role in ["class", "func", "meth", "attr", "exc", "data", "const"]:
@@ -296,7 +325,11 @@ class SphinxProcessor(BaseProcessor):
         content = re.sub(r"\[([^\]]+)\]\(([^)]+)\.rst\)", r"[\1](\2.md)", content)
 
         # Fix image paths
-        content = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", lambda m: self._fix_image_path(m.group(1), m.group(2)), content)
+        content = re.sub(
+            r"!\[([^\]]*)\]\(([^)]+)\)",
+            lambda m: self._fix_image_path(m.group(1), m.group(2)),
+            content,
+        )
 
         # Clean up extra whitespace
         content = re.sub(r"\n\s*\n\s*\n", "\n\n", content)

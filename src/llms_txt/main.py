@@ -34,22 +34,32 @@ class PackageSpec(NamedTuple):
     url: Optional[str] = None
 
 
-def parse_package_spec(spec: str, registry_type: Optional[RegistryType] = None) -> PackageSpec:
+def parse_package_spec(
+    spec: str, registry_type: Optional[RegistryType] = None
+) -> PackageSpec:
     """Parse package specification string into PackageSpec"""
     # Handle direct URLs
     if spec.startswith(("http://", "https://")):
-        return PackageSpec(name=Path(urlparse(spec).path).name, registry=RegistryType.HTTP, url=spec)
+        return PackageSpec(
+            name=Path(urlparse(spec).path).name, registry=RegistryType.HTTP, url=spec
+        )
 
     # Handle local files
     if Path(spec).exists():
-        return PackageSpec(name=Path(spec).name, registry=RegistryType.LOCAL, url=str(Path(spec).absolute()))
+        return PackageSpec(
+            name=Path(spec).name,
+            registry=RegistryType.LOCAL,
+            url=str(Path(spec).absolute()),
+        )
 
     # Handle package specs with version
     # Support formats: package==version, package@version, package:version
     version_match = re.match(r"^([^=@:]+)(==|@|:)(.+)$", spec)
     if version_match:
         name, _, version = version_match.groups()
-        return PackageSpec(name=name, registry=registry_type or RegistryType.PYPI, version=version)
+        return PackageSpec(
+            name=name, registry=registry_type or RegistryType.PYPI, version=version
+        )
 
     # Simple package name
     return PackageSpec(name=spec, registry=registry_type or RegistryType.PYPI)
@@ -85,7 +95,9 @@ class LlmTxtHarvester:
             try:
                 await self.harvest_package(spec)
             except Exception as e:
-                logger.error(f"Failed to harvest package {spec.name}: {e}", exc_info=True)
+                logger.error(
+                    f"Failed to harvest package {spec.name}: {e}", exc_info=True
+                )
 
     async def harvest_package(self, spec: PackageSpec) -> None:
         """Harvest documentation for a package"""
@@ -94,7 +106,12 @@ class LlmTxtHarvester:
             if spec.url:
                 logger.info(f"Direct URL: {spec.url}")
                 # Create a simple package object for direct URLs
-                package = Package(name=spec.name, version="latest", registry=spec.registry, documentation_url=spec.url)
+                package = Package(
+                    name=spec.name,
+                    version="latest",
+                    registry=spec.registry,
+                    documentation_url=spec.url,
+                )
 
                 # Use URL fetcher
                 fetcher = self.fetchers[SourceType.HTTP]
@@ -126,7 +143,9 @@ class LlmTxtHarvester:
                 logger.info(f"Processing with {processor.__class__.__name__}")
                 try:
                     async for directory in processor.detect(location):
-                        logger.info(f"Detected {directory} for {processor.__class__.__name__}")
+                        logger.info(
+                            f"Detected {directory} for {processor.__class__.__name__}"
+                        )
                         rel_path = directory.relative_to(location.path)
                         if rel_path in processed_paths:
                             continue
@@ -135,15 +154,22 @@ class LlmTxtHarvester:
                             result = await processor.process(location, directory)
                             processed_dirs.append(result)
                             # Dont count MarkdownProcessor towards processed paths
-                            if processor.__class__.__name__ != MarkdownProcessor.__name__:
+                            if (
+                                processor.__class__.__name__
+                                != MarkdownProcessor.__name__
+                            ):
                                 processed_paths.add(rel_path)
-                            logger.info(f"Processed {rel_path} with {processor.__class__.__name__}")
+                            logger.info(
+                                f"Processed {rel_path} with {processor.__class__.__name__}"
+                            )
                         except Exception as e:
                             errors.append(f"Failed to process {rel_path}: {str(e)}")
                             logger.error(f"Processing error: {e}", exc_info=True)
 
                 except Exception as e:
-                    errors.append(f"Processor {processor.__class__.__name__} failed: {str(e)}")
+                    errors.append(
+                        f"Processor {processor.__class__.__name__} failed: {str(e)}"
+                    )
                     logger.error(f"Processor error: {e}", exc_info=True)
 
             # Create and store final document
@@ -174,15 +200,21 @@ def parse_args():
 
     # Add config file option
     parser.add_argument("--config", "-c", type=Path, help="TOML configuration file")
-    parser.add_argument("--output-dir", "-o", type=Path, help="Output directory", default=Path("data"))
+    parser.add_argument(
+        "--output-dir", "-o", type=Path, help="Output directory", default=Path("data")
+    )
 
     # Keep existing arguments for direct CLI use
     source_group = parser.add_argument_group("source")
-    source_group.add_argument("--pypi", nargs="+", help="PyPI packages (e.g., package==version)")
+    source_group.add_argument(
+        "--pypi", nargs="+", help="PyPI packages (e.g., package==version)"
+    )
     source_group.add_argument("--npm", nargs="+", help="NPM packages")
     source_group.add_argument("--cargo", nargs="+", help="Cargo packages")
     source_group.add_argument("--nuget", nargs="+", help="NuGet packages")
-    source_group.add_argument("--url", nargs="+", help="Direct URLs to documentation files")
+    source_group.add_argument(
+        "--url", nargs="+", help="Direct URLs to documentation files"
+    )
     source_group.add_argument("--file", nargs="+", help="Local documentation files")
 
     return parser.parse_args()
@@ -194,18 +226,31 @@ async def process_config(config: LlmsTxtConfig) -> None:
 
     # Collect all package specs from config
     if config.pypi:
-        specs.extend(parse_package_spec(spec, RegistryType.PYPI) for spec in config.pypi)
+        specs.extend(
+            parse_package_spec(spec, RegistryType.PYPI) for spec in config.pypi
+        )
     if config.npm:
         specs.extend(parse_package_spec(spec, RegistryType.NPM) for spec in config.npm)
     if config.cargo:
-        specs.extend(parse_package_spec(spec, RegistryType.CARGO) for spec in config.cargo)
+        specs.extend(
+            parse_package_spec(spec, RegistryType.CARGO) for spec in config.cargo
+        )
     if config.nuget:
-        specs.extend(parse_package_spec(spec, RegistryType.NUGET) for spec in config.nuget)
+        specs.extend(
+            parse_package_spec(spec, RegistryType.NUGET) for spec in config.nuget
+        )
     if config.urls:
-        specs.extend(PackageSpec(name=Path(url).name, registry=RegistryType.OTHER, url=url) for url in config.urls)
+        specs.extend(
+            PackageSpec(name=Path(url).name, registry=RegistryType.OTHER, url=url)
+            for url in config.urls
+        )
     if config.files:
         specs.extend(
-            PackageSpec(name=Path(f).name, registry=RegistryType.LOCAL, url=str(Path(f).absolute()))
+            PackageSpec(
+                name=Path(f).name,
+                registry=RegistryType.LOCAL,
+                url=str(Path(f).absolute()),
+            )
             for f in config.files
         )
     if not specs:
@@ -232,18 +277,33 @@ def main():
             return
     else:
         if args.pypi:
-            specs.extend(parse_package_spec(spec, RegistryType.PYPI) for spec in args.pypi)
+            specs.extend(
+                parse_package_spec(spec, RegistryType.PYPI) for spec in args.pypi
+            )
         if args.npm:
-            specs.extend(parse_package_spec(spec, RegistryType.NPM) for spec in args.npm)
+            specs.extend(
+                parse_package_spec(spec, RegistryType.NPM) for spec in args.npm
+            )
         if args.cargo:
-            specs.extend(parse_package_spec(spec, RegistryType.CARGO) for spec in args.cargo)
+            specs.extend(
+                parse_package_spec(spec, RegistryType.CARGO) for spec in args.cargo
+            )
         if args.nuget:
-            specs.extend(parse_package_spec(spec, RegistryType.NUGET) for spec in args.nuget)
+            specs.extend(
+                parse_package_spec(spec, RegistryType.NUGET) for spec in args.nuget
+            )
         if args.url:
-            specs.extend(PackageSpec(name=Path(url).name, registry=RegistryType.OTHER, url=url) for url in args.url)
+            specs.extend(
+                PackageSpec(name=Path(url).name, registry=RegistryType.OTHER, url=url)
+                for url in args.url
+            )
         if args.file:
             specs.extend(
-                PackageSpec(name=Path(f).name, registry=RegistryType.LOCAL, url=str(Path(f).absolute()))
+                PackageSpec(
+                    name=Path(f).name,
+                    registry=RegistryType.LOCAL,
+                    url=str(Path(f).absolute()),
+                )
                 for f in args.file
             )
         if not specs:

@@ -28,7 +28,9 @@ class IgnorePythonObjectsLoader(yaml.SafeLoader):
     pass
 
 
-IgnorePythonObjectsLoader.add_constructor(None, IgnorePythonObjectsConstructor.construct_undefined)
+IgnorePythonObjectsLoader.add_constructor(
+    None, IgnorePythonObjectsConstructor.construct_undefined
+)
 
 
 class MkDocsProcessor(BaseProcessor):
@@ -43,7 +45,9 @@ class MkDocsProcessor(BaseProcessor):
         for config_file in location.path.rglob("mkdocs.yml"):
             yield config_file.parent
 
-    async def process(self, location: CodeLocation, directory: Path) -> ProcessedDirectory:
+    async def process(
+        self, location: CodeLocation, directory: Path
+    ) -> ProcessedDirectory:
         """Process MkDocs documentation directory"""
         try:
             # Read MkDocs config
@@ -82,7 +86,9 @@ class MkDocsProcessor(BaseProcessor):
             )
 
         except Exception as e:
-            raise ProcessingError(f"Failed to process MkDocs directory {directory}: {str(e)}")
+            raise ProcessingError(
+                f"Failed to process MkDocs directory {directory}: {str(e)}"
+            )
 
     def _process_nav_files(self, nav: list, docs_dir: Path) -> Dict[str, str]:
         """Process navigation files and return a dict of file paths to content"""
@@ -95,7 +101,9 @@ class MkDocsProcessor(BaseProcessor):
             elif isinstance(item, dict):
                 for title, nav_content in item.items():
                     if isinstance(nav_content, str) and nav_content.endswith(".md"):
-                        content[nav_content] = self._read_markdown_file(docs_dir / nav_content)
+                        content[nav_content] = self._read_markdown_file(
+                            docs_dir / nav_content
+                        )
                     elif isinstance(nav_content, list):
                         for child in nav_content:
                             process_nav_item(child)
@@ -163,7 +171,9 @@ class MkDocsProcessor(BaseProcessor):
                     target_path = (current_file.parent / file_ref).resolve()
 
                 if not target_path.exists():
-                    logger.warning(f"Referenced file not found: {file_ref} (tried from {current_file})")
+                    logger.warning(
+                        f"Referenced file not found: {file_ref} (tried from {current_file})"
+                    )
                     return f"```\n# File not found: {file_ref}\n```"
 
                 with open(target_path, "r", encoding="utf-8") as f:
@@ -173,7 +183,9 @@ class MkDocsProcessor(BaseProcessor):
 
                 # Add highlight info as a comment if present
                 if highlight_info:
-                    return f"```{lang}\n# Highlight: {highlight_info}\n{file_content}\n```"
+                    return (
+                        f"```{lang}\n# Highlight: {highlight_info}\n{file_content}\n```"
+                    )
                 else:
                     return f"```{lang}\n{file_content}\n```"
 

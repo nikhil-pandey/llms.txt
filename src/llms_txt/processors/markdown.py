@@ -33,7 +33,9 @@ class MarkdownProcessor(BaseProcessor):
                     continue
                 yield root_dir
 
-    async def process(self, location: CodeLocation, directory: Path) -> ProcessedDirectory:
+    async def process(
+        self, location: CodeLocation, directory: Path
+    ) -> ProcessedDirectory:
         """Process markdown and text files in root directory"""
         content = {}
         file_count = 0
@@ -62,5 +64,8 @@ class MarkdownProcessor(BaseProcessor):
             relative_path=directory.relative_to(location.path),
             format=self.format,
             content=content,
-            metadata={"file_count": file_count, "file_types": list(self.markdown_extensions | self.text_extensions)},
+            metadata={
+                "file_count": file_count,
+                "file_types": list(self.markdown_extensions | self.text_extensions),
+            },
         )

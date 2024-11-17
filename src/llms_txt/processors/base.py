@@ -17,6 +17,8 @@ class BaseProcessor(ABC):
         pass
 
     @abstractmethod
-    async def process(self, location: CodeLocation, directory: Path) -> ProcessedDirectory:
+    async def process(
+        self, location: CodeLocation, directory: Path
+    ) -> ProcessedDirectory:
         """Process a detected directory"""
         pass

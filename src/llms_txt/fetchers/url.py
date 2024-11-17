@@ -28,7 +28,9 @@ class URLFetcher:
     async def fetch(self, package: Package) -> CodeLocation:
         """Fetch content from URL and return its location"""
         if not package.documentation_url:
-            raise FetchError(f"No documentation URL provided for package {package.name}")
+            raise FetchError(
+                f"No documentation URL provided for package {package.name}"
+            )
 
         url = package.documentation_url
         try:
@@ -56,7 +58,9 @@ class URLFetcher:
     async def _is_direct_file(self, url: str) -> bool:
         """Check if URL points to a direct file"""
         parsed = urlparse(url)
-        return any(parsed.path.lower().endswith(ext) for ext in self.supported_extensions)
+        return any(
+            parsed.path.lower().endswith(ext) for ext in self.supported_extensions
+        )
 
     async def _fetch_direct_file(self, url: str, temp_dir: Path) -> CodeLocation:
         """Fetch a direct file from URL"""
@@ -87,7 +91,11 @@ class URLFetcher:
     async def _handle_website(self, url: str, temp_dir: Path) -> CodeLocation:
         """Handle website URL (placeholder for now)"""
         logger.warning(f"Website crawling not implemented yet for {url}")
-        return CodeLocation(path=temp_dir, source_url=url, metadata={"type": "website", "status": "not_implemented"})
+        return CodeLocation(
+            path=temp_dir,
+            source_url=url,
+            metadata={"type": "website", "status": "not_implemented"},
+        )
 
     def _get_filename_from_url(self, url: str, response: aiohttp.ClientResponse) -> str:
         """Extract filename from URL or Content-Disposition header"""

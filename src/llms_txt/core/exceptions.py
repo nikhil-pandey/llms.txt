@@ -6,7 +6,6 @@ class DiscoveryError(LlmsTxtError):
     """Error during package/documentation discovery"""
 
 
-
 class FetchError(LlmsTxtError):
     """Error during content fetching"""
 

@@ -44,11 +44,9 @@ def parse_package_spec(
         path = urlparse(spec).path.lower()
         if path.endswith((".md", ".rst", ".txt")):
             return PackageSpec(
-                name=Path(path).name, 
-                registry=RegistryType.HTTP, 
-                url=spec
+                name=Path(path).name, registry=RegistryType.HTTP, url=spec
             )
-    
+
     # Handle local files
     if Path(spec).exists():
         return PackageSpec(

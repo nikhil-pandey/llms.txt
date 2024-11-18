@@ -124,7 +124,9 @@ def combine_docs(data_dir: Path, output_dir: Path) -> None:
 
 def main() -> None:
     """Entry point for the publish command."""
-    parser = argparse.ArgumentParser(description="Process and publish documentation as a static site")
+    parser = argparse.ArgumentParser(
+        description="Process and publish documentation as a static site"
+    )
     parser.add_argument(
         "--data-dir",
         type=Path,

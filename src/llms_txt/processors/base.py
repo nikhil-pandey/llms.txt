@@ -43,11 +43,11 @@ class BaseProcessor(ABC):
                 capture_output=True,
                 check=True,
             )
-            
+
             converted = process.stdout.decode()
             logger.info(f"Converted RST file to markdown: {file_path}")
             return converted
-            
+
         except FileNotFoundError:
             logger.warning("pandoc not found. Please install pandoc on your system")
         except subprocess.CalledProcessError as e:
@@ -56,5 +56,5 @@ class BaseProcessor(ABC):
             )
         except Exception as e:
             logger.warning(f"Failed to convert RST file {file_path}: {e}")
-        
+
         return content  # Return original content if conversion fails

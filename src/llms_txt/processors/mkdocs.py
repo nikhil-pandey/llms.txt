@@ -101,7 +101,9 @@ class MkDocsProcessor(BaseProcessor):
                     content[item] = self._read_markdown_file(docs_dir / item)
             elif isinstance(item, dict):
                 for title, nav_content in item.items():
-                    if isinstance(nav_content, str) and nav_content.endswith((".md", ".rst")):
+                    if isinstance(nav_content, str) and nav_content.endswith(
+                        (".md", ".rst")
+                    ):
                         content[nav_content] = self._read_markdown_file(
                             docs_dir / nav_content
                         )

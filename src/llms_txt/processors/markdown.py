@@ -28,9 +28,7 @@ class MarkdownProcessor(BaseProcessor):
         """Find markdown, RST or text files in root directory"""
         root_dir = location.path
         all_extensions = (
-            self.markdown_extensions | 
-            self.text_extensions | 
-            self.rst_extensions
+            self.markdown_extensions | self.text_extensions | self.rst_extensions
         )
         for ext in all_extensions:
             for file_path in root_dir.glob(f"*{ext}"):
@@ -45,9 +43,7 @@ class MarkdownProcessor(BaseProcessor):
         content = {}
         file_count = 0
         all_extensions = (
-            self.markdown_extensions | 
-            self.text_extensions | 
-            self.rst_extensions
+            self.markdown_extensions | self.text_extensions | self.rst_extensions
         )
 
         for ext in all_extensions:
@@ -55,9 +51,7 @@ class MarkdownProcessor(BaseProcessor):
                 if file_path.name in self.ignored_files:
                     continue
                 try:
-                    async with aiofiles.open(
-                        file_path, "r", encoding="utf-8"
-                    ) as f:
+                    async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
                         file_content = await f.read()
 
                     # Convert RST to Markdown if needed

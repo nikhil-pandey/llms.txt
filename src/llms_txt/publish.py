@@ -18,7 +18,7 @@ def combine_docs(data_dir: Path, output_dir: Path) -> None:
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create index.html with basic styling
+    # Create index.html with basic styling and GitHub link
     index_content = """
     <html>
     <head>
@@ -32,6 +32,19 @@ def combine_docs(data_dir: Path, output_dir: Path) -> None:
                 line-height: 1.5;
             }
             h1 { color: #2563eb; }
+            .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .github-link {
+                color: #64748b;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .github-link:hover { color: #0f172a; }
             a { 
                 color: #3b82f6;
                 text-decoration: none;
@@ -41,7 +54,14 @@ def combine_docs(data_dir: Path, output_dir: Path) -> None:
         </style>
     </head>
     <body>
-        <h1>LLMs Documentation</h1>
+        <div class="header">
+            <h1>LLMs Documentation</h1>
+            <a href="https://github.com/nikhil-pandey/llms.txt" 
+               class="github-link" 
+               target="_blank">
+                View on GitHub
+            </a>
+        </div>
         <ul>
     """
 

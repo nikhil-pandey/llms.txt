@@ -1,0 +1,506 @@
+CHANGES.rst
+
+---
+
+MOVED
+=====
+
+For an index of all changelogs, please see:
+
+-   On the web: <https://www.sqlalchemy.org/docs/latest/changelog/>
+-   In the source tree: [/doc/build/changelog/](/doc/build/changelog/)
+-   In the released distribution tree: /doc/changelog/index.html
+
+
+---
+
+README.dialects.rst
+
+---
+
+Developing new Dialects
+=======================
+
+::: {.note}
+::: {.title}
+Note
+:::
+
+When studying this file, it\'s probably a good idea to also familiarize with the README.unittests.rst file, which discusses SQLAlchemy\'s usage and extension of the pytest test runner.
+:::
+
+While SQLAlchemy includes many dialects within the core distribution, the trend for new dialects should be that they are published as external projects. SQLAlchemy has since version 0.5 featured a \"plugin\" system which allows external dialects to be integrated into SQLAlchemy using standard setuptools entry points. As of version 0.8, this system has been enhanced, so that a dialect can also be \"plugged in\" at runtime.
+
+On the testing side, SQLAlchemy includes a \"dialect compliance suite\" that is usable by third party libraries, in the source tree at `lib/sqlalchemy/testing/suite`. There\'s no need for a third party dialect to run through SQLAlchemy\'s full testing suite, as a large portion of these tests do not have dialect-sensitive functionality. The \"dialect compliance suite\" should be viewed as the primary target for new dialects.
+
+Dialect Layout
+--------------
+
+The file structure of a dialect is typically similar to the following:
+
+    sqlalchemy-<dialect>/
+                         setup.py
+                         setup.cfg
+                         sqlalchemy_<dialect>/
+                                              __init__.py
+                                              base.py
+                                              <dbapi>.py
+                                              requirements.py
+                         test/
+                                              __init__.py
+                                              conftest.py
+                                              test_suite.py
+                                              test_<dialect_specific_test>.py
+                                              ...
+
+An example of this structure can be seen in the MS Access dialect at <https://github.com/gordthompson/sqlalchemy-access> .
+
+Key aspects of this file layout include:
+
+-   setup.py - should specify setuptools entrypoints, allowing the dialect to be usable from create\_engine(), e.g.:
+
+        entry_points = {
+         'sqlalchemy.dialects': [
+              'access.pyodbc = sqlalchemy_access.pyodbc:AccessDialect_pyodbc',
+              ]
+        }
+
+    Above, the entrypoint `access.pyodbc` allow URLs to be used such as:
+
+        create_engine("access+pyodbc://user:pw@dsn")
+
+-   setup.cfg - this file contains the traditional contents such as \[<tool:pytest>\] directives, but also contains new directives that are used by SQLAlchemy\'s testing framework. E.g. for Access:
+
+        [tool:pytest]
+        addopts= --tb native -v -r fxX --maxfail=25 -p no:warnings
+        python_files=test/*test_*.py
+
+        [sqla_testing]
+        requirement_cls=sqlalchemy_access.requirements:Requirements
+        profile_file=test/profiles.txt
+
+        [db]
+        default=access+pyodbc://admin@access_test
+        sqlite=sqlite:///:memory:
+
+    Above, the `[sqla_testing]` section contains configuration used by SQLAlchemy\'s test plugin. The `[tool:pytest]` section include directives to help with these runners. When using pytest the test/conftest.py file will bootstrap SQLAlchemy\'s plugin.
+
+-   test/conftest.py - This script bootstraps SQLAlchemy\'s pytest plugin into the pytest runner. This script can also be used to install your third party dialect into SQLAlchemy without using the setuptools entrypoint system; this allows your dialect to be present without any explicit setup.py step needed. The other portion invokes SQLAlchemy\'s pytest plugin:
+
+        from sqlalchemy.dialects import registry
+        import pytest
+
+        registry.register("access.pyodbc", "sqlalchemy_access.pyodbc", "AccessDialect_pyodbc")
+
+        pytest.register_assert_rewrite("sqlalchemy.testing.assertions")
+
+        from sqlalchemy.testing.plugin.pytestplugin import *
+
+    Where above, the `registry` module, introduced in SQLAlchemy 0.8, provides an in-Python means of installing the dialect entrypoint(s) without the use of setuptools, using the `registry.register()` function in a way that is similar to the `entry_points` directive we placed in our `setup.py`. (The `pytest.register_assert_rewrite` is there just to suppress a spurious warning from pytest.)
+
+-   requirements.py - The `requirements.py` file is where directives regarding database and dialect capabilities are set up. SQLAlchemy\'s tests are often annotated with decorators that mark tests as \"skip\" or \"fail\" for particular backends. Over time, this system has been refined such that specific database and DBAPI names are mentioned less and less, in favor of \@requires directives which state a particular capability. The requirement directive is linked to target dialects using a `Requirements` subclass. The custom `Requirements` subclass is specified in the `requirements.py` file and is made available to SQLAlchemy\'s test runner using the `requirement_cls` directive inside the `[sqla_testing]` section.
+
+    For a third-party dialect, the custom `Requirements` class can usually specify a simple yes/no answer for a particular system. For example, a requirements file that specifies a database that supports the RETURNING construct but does not support nullable boolean columns might look like this:
+
+        # sqlalchemy_access/requirements.py
+
+        from sqlalchemy.testing.requirements import SuiteRequirements
+
+        from sqlalchemy.testing import exclusions
+
+        class Requirements(SuiteRequirements):
+            @property
+            def nullable_booleans(self):
+                """Target database allows boolean columns to store NULL."""
+                # Access Yes/No doesn't allow null
+                return exclusions.closed()
+
+            @property
+            def returning(self):
+                return exclusions.open()
+
+    The `SuiteRequirements` class in `sqlalchemy.testing.requirements` contains a large number of requirements rules, which attempt to have reasonable defaults. The tests will report on those requirements found as they are run.
+
+    The requirements system can also be used when running SQLAlchemy\'s primary test suite against the external dialect. In this use case, a `--dburi` as well as a `--requirements` flag are passed to SQLAlchemy\'s test runner so that exclusions specific to the dialect take place:
+
+        cd /path/to/sqlalchemy
+        pytest -v \
+          --requirements sqlalchemy_access.requirements:Requirements \
+          --dburi access+pyodbc://admin@access_test
+
+-   test\_suite.py - Finally, the `test_suite.py` module represents a stub test suite, which pulls in the actual SQLAlchemy test suite. To pull in the suite as a whole, it can be imported in one step:
+
+        # test/test_suite.py
+
+        from sqlalchemy.testing.suite import *
+
+    That\'s all that\'s needed - the `sqlalchemy.testing.suite` package contains an ever expanding series of tests, most of which should be annotated with specific requirement decorators so that they can be fully controlled. In the case that the decorators are not covering a particular test, a test can also be directly modified or bypassed. In the example below, the Access dialect test suite overrides the `get_huge_int()` test:
+
+        from sqlalchemy.testing.suite import *
+
+        from sqlalchemy.testing.suite import IntegerTest as _IntegerTest
+
+        class IntegerTest(_IntegerTest):
+
+            @testing.skip("access")
+            def test_huge_int(self):
+                # bypass this test because Access ODBC fails with
+                # [ODBC Microsoft Access Driver] Optional feature not implemented.
+                return
+
+### AsyncIO dialects
+
+As of version 1.4 SQLAlchemy supports also dialects that use asyncio drivers to interface with the database backend.
+
+SQLAlchemy\'s approach to asyncio drivers is that the connection and cursor objects of the driver (if any) are adapted into a pep-249 compliant interface, using the `AdaptedConnection` interface class. Refer to the internal asyncio driver implementations such as that of `asyncpg`, `asyncmy` and `aiosqlite` for examples.
+
+Going Forward
+-------------
+
+The third-party dialect can be distributed like any other Python module on PyPI. Links to prominent dialects can be featured within SQLAlchemy\'s own documentation; contact the developers (see AUTHORS) for help with this.
+
+While SQLAlchemy includes many dialects built in, it remains to be seen if the project as a whole might move towards \"plugin\" model for all dialects, including all those currently built in. Now that SQLAlchemy\'s dialect API is mature and the test suite is not far behind, it may be that a better maintenance experience can be delivered by having all dialects separately maintained and released.
+
+As new versions of SQLAlchemy are released, the test suite and requirements file will receive new tests and changes. The dialect maintainer would normally keep track of these changes and make adjustments as needed.
+
+
+---
+
+README.rst
+
+---
+
+SQLAlchemy
+==========
+
+[![PyPI](https://img.shields.io/pypi/v/sqlalchemy)](https://pypi.org/project/sqlalchemy) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sqlalchemy)](https://pypi.org/project/sqlalchemy) [![PyPI - Downloads](https://static.pepy.tech/badge/sqlalchemy/month)](https://pepy.tech/project/sqlalchemy)
+
+The Python SQL Toolkit and Object Relational Mapper
+
+Introduction
+------------
+
+SQLAlchemy is the Python SQL toolkit and Object Relational Mapper that gives application developers the full power and flexibility of SQL. SQLAlchemy provides a full suite of well known enterprise-level persistence patterns, designed for efficient and high-performing database access, adapted into a simple and Pythonic domain language.
+
+Major SQLAlchemy features include:
+
+-   An industrial strength ORM, built from the core on the identity map, unit of work, and data mapper patterns. These patterns allow transparent persistence of objects using a declarative configuration system. Domain models can be constructed and manipulated naturally, and changes are synchronized with the current transaction automatically.
+-   A relationally-oriented query system, exposing the full range of SQL\'s capabilities explicitly, including joins, subqueries, correlation, and most everything else, in terms of the object model. Writing queries with the ORM uses the same techniques of relational composition you use when writing SQL. While you can drop into literal SQL at any time, it\'s virtually never needed.
+-   A comprehensive and flexible system of eager loading for related collections and objects. Collections are cached within a session, and can be loaded on individual access, all at once using joins, or by query per collection across the full result set.
+-   A Core SQL construction system and DBAPI interaction layer. The SQLAlchemy Core is separate from the ORM and is a full database abstraction layer in its own right, and includes an extensible Python-based SQL expression language, schema metadata, connection pooling, type coercion, and custom types.
+-   All primary and foreign key constraints are assumed to be composite and natural. Surrogate integer primary keys are of course still the norm, but SQLAlchemy never assumes or hardcodes to this model.
+-   Database introspection and generation. Database schemas can be \"reflected\" in one step into Python structures representing database metadata; those same structures can then generate CREATE statements right back out - all within the Core, independent of the ORM.
+
+SQLAlchemy\'s philosophy:
+
+-   SQL databases behave less and less like object collections the more size and performance start to matter; object collections behave less and less like tables and rows the more abstraction starts to matter. SQLAlchemy aims to accommodate both of these principles.
+-   An ORM doesn\'t need to hide the \"R\". A relational database provides rich, set-based functionality that should be fully exposed. SQLAlchemy\'s ORM provides an open-ended set of patterns that allow a developer to construct a custom mediation layer between a domain model and a relational schema, turning the so-called \"object relational impedance\" issue into a distant memory.
+-   The developer, in all cases, makes all decisions regarding the design, structure, and naming conventions of both the object model as well as the relational schema. SQLAlchemy only provides the means to automate the execution of these decisions.
+-   With SQLAlchemy, there\'s no such thing as \"the ORM generated a bad query\" - you retain full control over the structure of queries, including how joins are organized, how subqueries and correlation is used, what columns are requested. Everything SQLAlchemy does is ultimately the result of a developer-initiated decision.
+-   Don\'t use an ORM if the problem doesn\'t need one. SQLAlchemy consists of a Core and separate ORM component. The Core offers a full SQL expression language that allows Pythonic construction of SQL constructs that render directly to SQL strings for a target database, returning result sets that are essentially enhanced DBAPI cursors.
+-   Transactions should be the norm. With SQLAlchemy\'s ORM, nothing goes to permanent storage until commit() is called. SQLAlchemy encourages applications to create a consistent means of delineating the start and end of a series of operations.
+-   Never render a literal value in a SQL statement. Bound parameters are used to the greatest degree possible, allowing query optimizers to cache query plans effectively and making SQL injection attacks a non-issue.
+
+Documentation
+-------------
+
+Latest documentation is at:
+
+<https://www.sqlalchemy.org/docs/>
+
+Installation / Requirements
+---------------------------
+
+Full documentation for installation is at [Installation](https://www.sqlalchemy.org/docs/intro.html#installation).
+
+Getting Help / Development / Bug reporting
+------------------------------------------
+
+Please refer to the [SQLAlchemy Community Guide](https://www.sqlalchemy.org/support.html).
+
+Code of Conduct
+---------------
+
+Above all, SQLAlchemy places great emphasis on polite, thoughtful, and constructive communication between users and developers. Please see our current Code of Conduct at [Code of Conduct](https://www.sqlalchemy.org/codeofconduct.html).
+
+License
+-------
+
+SQLAlchemy is distributed under the [MIT license](https://www.opensource.org/licenses/mit-license.php).
+
+
+---
+
+README.unittests.rst
+
+---
+
+SQLALCHEMY UNIT TESTS
+=====================
+
+Basic Test Running
+------------------
+
+Tox is used to run the test suite fully. For basic test runs against a single Python interpreter:
+
+    tox
+
+Advanced Tox Options
+--------------------
+
+For more elaborate CI-style test running, the tox script provided will run against various Python / database targets. For a basic run against Python 3.11 using an in-memory SQLite database:
+
+    tox -e py311-sqlite
+
+The tox runner contains a series of target combinations that can run against various combinations of databases. The test suite can be run against SQLite with \"backend\" tests also running against a PostgreSQL database:
+
+    tox -e py311-sqlite-postgresql
+
+Or to run just \"backend\" tests against a MySQL database:
+
+    tox -e py311-mysql-backendonly
+
+Running against backends other than SQLite requires that a database of that vendor be available at a specific URL. See \"Setting Up Databases\" below for details.
+
+The pytest Engine
+-----------------
+
+The tox runner is using pytest to invoke the test suite. Within the realm of pytest, SQLAlchemy itself is adding a large series of option and customizations to the pytest runner using plugin points, to allow for SQLAlchemy\'s multiple database support, database setup/teardown and connectivity, multi process support, as well as lots of skip / database selection rules.
+
+Running tests with pytest directly grants more immediate control over database options and test selection.
+
+A generic pytest run looks like:
+
+    pytest -n4
+
+Above, the full test suite will run against SQLite, using four processes. If the \"-n\" flag is not used, the pytest-xdist is skipped and the tests will run linearly, which will take a pretty long time.
+
+The pytest command line is more handy for running subsets of tests and to quickly allow for custom database connections. Example:
+
+    pytest --dburi=postgresql+psycopg2://scott:tiger@localhost/test  test/sql/test_query.py
+
+Above will run the tests in the test/sql/test\_query.py file (a pretty good file for basic \"does this database work at all?\" to start with) against a running PostgreSQL database at the given URL.
+
+The pytest frontend can also run tests against multiple kinds of databases at once - a large subset of tests are marked as \"backend\" tests, which will be run against each available backend, and additionally lots of tests are targeted at specific backends only, which only run if a matching backend is made available. For example, to run the test suite against both PostgreSQL and MySQL at the same time:
+
+    pytest -n4 --db postgresql --db mysql
+
+Setting Up Databases
+--------------------
+
+The test suite identifies several built-in database tags that run against a pre-set URL. These can be seen using \--dbs:
+
+    $ pytest --dbs
+    Available --db options (use --dburi to override)
+                aiomysql    mysql+aiomysql://scott:tiger@127.0.0.1:3306/test?charset=utf8mb4
+               aiosqlite    sqlite+aiosqlite:///:memory:
+          aiosqlite_file    sqlite+aiosqlite:///async_querytest.db
+                 asyncmy    mysql+asyncmy://scott:tiger@127.0.0.1:3306/test?charset=utf8mb4
+                 asyncpg    postgresql+asyncpg://scott:tiger@127.0.0.1:5432/test
+                 default    sqlite:///:memory:
+            docker_mssql    mssql+pymssql://scott:tiger^5HHH@127.0.0.1:1433/test
+                 mariadb    mariadb+mysqldb://scott:tiger@127.0.0.1:3306/test
+       mariadb_connector    mariadb+mariadbconnector://scott:tiger@127.0.0.1:3306/test
+                   mssql    mssql+pyodbc://scott:tiger^5HHH@mssql2017:1433/test?driver=ODBC+Driver+13+for+SQL+Server
+           mssql_pymssql    mssql+pymssql://scott:tiger@ms_2008
+                   mysql    mysql+mysqldb://scott:tiger@127.0.0.1:3306/test?charset=utf8mb4
+                  oracle    oracle+cx_oracle://scott:tiger@oracle18c
+         oracle_oracledb    oracle+oracledb://scott:tiger@oracle18c
+                  pg8000    postgresql+pg8000://scott:tiger@127.0.0.1:5432/test
+              postgresql    postgresql+psycopg2://scott:tiger@127.0.0.1:5432/test
+    postgresql_psycopg2cffi postgresql+psycopg2cffi://scott:tiger@127.0.0.1:5432/test
+                 psycopg    postgresql+psycopg://scott:tiger@127.0.0.1:5432/test
+                psycopg2    postgresql+psycopg2://scott:tiger@127.0.0.1:5432/test
+           psycopg_async    postgresql+psycopg_async://scott:tiger@127.0.0.1:5432/test
+                 pymysql    mysql+pymysql://scott:tiger@127.0.0.1:3306/test?charset=utf8mb4
+        pysqlcipher_file    sqlite+pysqlcipher://:test@/querytest.db.enc
+                  sqlite    sqlite:///:memory:
+             sqlite_file    sqlite:///querytest.db
+
+Note that a pyodbc URL **must be against a hostname / database name combination, not a DSN name** when using the multiprocessing option; this is because the test suite needs to generate new URLs to refer to per-process databases that are created on the fly.
+
+What those mean is that if you have a database running that can be accessed by the above URL, you can run the test suite against it using `--db <name>`.
+
+The URLs are present in the `setup.cfg` file. You can make your own URLs by creating a new file called `test.cfg` and adding your own `[db]` section:
+
+    # test.cfg file
+    [db]
+    my_postgresql=postgresql+psycopg2://username:pass@hostname/dbname
+
+Above, we can now run the tests with `my_postgresql`:
+
+    pytest --db my_postgresql
+
+We can also override the existing names in our `test.cfg` file, so that we can run with the tox runner also:
+
+    # test.cfg file
+    [db]
+    postgresql=postgresql+psycopg2://username:pass@hostname/dbname
+
+Now when we run `tox -e py311-postgresql`, it will use our custom URL instead of the fixed one in setup.cfg.
+
+Database Configuration
+----------------------
+
+Step one, the **database chosen for tests must be entirely empty**. A lot of what SQLAlchemy tests is creating and dropping lots of tables as well as running database introspection to see what is there. If there are pre-existing tables or other objects in the target database already, these will get in the way. A failed test run can also be followed by a run that includes the \"\--dropfirst\" option, which will try to drop all existing tables in the target database.
+
+The above paragraph changes somewhat when the multiprocessing option is used, in that separate databases will be created instead, however in the case of Postgresql, the starting database is used as a template, so the starting database must still be empty. See below for example configurations using docker.
+
+The test runner will by default create and drop tables within the default database that\'s in the database URL, *unless* the multiprocessing option is in use via the pytest \"-n\" flag, which invokes pytest-xdist. The multiprocessing option is **enabled by default** when using the tox runner. When multiprocessing is used, the SQLAlchemy testing framework will create a new database for each process, and then tear it down after the test run is complete. So it will be necessary for the database user to have access to CREATE DATABASE in order for this to work. Additionally, as mentioned earlier, the database URL must be formatted such that it can be rewritten on the fly to refer to these other databases, which means for pyodbc it must refer to a hostname/database name combination, not a DSN name.
+
+Several tests require alternate usernames or schemas to be present, which are used to test dotted-name access scenarios. On some databases such as Oracle these are usernames, and others such as PostgreSQL and MySQL they are schemas. The requirement applies to all backends except SQLite and Firebird. The names are:
+
+    test_schema
+    test_schema_2 (only used on PostgreSQL and mssql)
+
+Please refer to your vendor documentation for the proper syntax to create these namespaces - the database user must have permission to create and drop tables within these schemas. Its perfectly fine to run the test suite without these namespaces present, it only means that a handful of tests which expect them to be present will fail.
+
+Additional steps specific to individual databases are as follows:
+
+    POSTGRESQL: To enable unicode testing with JSONB, create the
+    database with UTF8 encoding::
+
+        postgres=# create database test with owner=scott encoding='utf8' template=template0;
+
+    To include tests for HSTORE and CITEXT for PostgreSQL versions lower than 13,
+    create the extensions; for PostgreSQL 13 and above, these
+    extensions are created automatically as part of the test suite if not
+    already present::
+
+        postgres=# \c test;
+        You are now connected to database "test" as user "postgresql".
+        test=# create extension hstore;
+        CREATE EXTENSION
+        test=# create extension citext;
+        CREATE EXTENSION
+
+    Full-text search configuration should be set to English, else
+    several tests of ``.match()`` will fail. This can be set (if it isn't so
+    already) with:
+
+     ALTER DATABASE test SET default_text_search_config = 'pg_catalog.english'
+
+    For two-phase transaction support, the max_prepared_transactions
+    configuration variable must be set to a non-zero value in postgresql.conf.
+    See
+    https://www.postgresql.org/docs/current/runtime-config-resource.html#GUC-MAX-PREPARED-TRANSACTIONS
+    for further background.
+
+    ORACLE: a user named "test_schema" is created in addition to the default
+    user.
+
+    The primary database user needs to be able to create and drop tables,
+    synonyms, and constraints within the "test_schema" user.   For this
+    to work fully, including that the user has the "REFERENCES" role
+    in a remote schema for tables not yet defined (REFERENCES is per-table),
+    it is required that the test the user be present in the "DBA" role:
+
+        grant dba to scott;
+
+    MSSQL: Tests that involve multiple connections require Snapshot Isolation
+    ability implemented on the test database in order to prevent deadlocks that
+    will occur with record locking isolation. This feature is only available
+    with MSSQL 2005 and greater. You must enable snapshot isolation at the
+    database level and set the default cursor isolation with two SQL commands:
+
+     ALTER DATABASE MyDatabase SET ALLOW_SNAPSHOT_ISOLATION ON
+
+     ALTER DATABASE MyDatabase SET READ_COMMITTED_SNAPSHOT ON
+
+### Docker Configurations
+
+The SQLAlchemy test can run against database running in Docker containers. This ensures that they are empty and that their configuration is not influenced by any local usage.
+
+The following configurations are just examples that developers can use to quickly set up a local environment for SQLAlchemy development. They are **NOT** intended for production use!
+
+**PostgreSQL configuration**:
+
+    # create the container with the proper configuration for sqlalchemy
+    docker run --rm -e POSTGRES_USER='scott' -e POSTGRES_PASSWORD='tiger' -e POSTGRES_DB='test' -p 127.0.0.1:5432:5432 -d --name postgres postgres
+
+    # configure the database
+    sleep 10
+    docker exec -ti postgres psql -U scott -c 'CREATE SCHEMA test_schema; CREATE SCHEMA test_schema_2;CREATE EXTENSION hstore;CREATE EXTENSION citext;' test
+    # this last command is optional
+    docker exec -ti postgres sed -i 's/#max_prepared_transactions = 0/max_prepared_transactions = 10/g' /var/lib/postgresql/data/postgresql.conf
+
+    # To stop the container. It will also remove it.
+    docker stop postgres
+
+**MySQL configuration**:
+
+    # create the container with the proper configuration for sqlalchemy
+    docker run --rm -e MYSQL_USER='scott' -e MYSQL_PASSWORD='tiger' -e MYSQL_DATABASE='test' -e MYSQL_ROOT_PASSWORD='password' -p 127.0.0.1:3306:3306 -d --name mysql mysql --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+    # configure the database
+    sleep 20
+    docker exec -ti mysql mysql -u root -ppassword -w -e "CREATE DATABASE test_schema CHARSET utf8mb4; GRANT ALL ON test_schema.* TO scott;"
+
+    # To stop the container. It will also remove it.
+    docker stop mysql
+
+**MariaDB configuration**:
+
+    # create the container with the proper configuration for sqlalchemy
+    docker run --rm -e MARIADB_USER='scott' -e MARIADB_PASSWORD='tiger' -e MARIADB_DATABASE='test' -e MARIADB_ROOT_PASSWORD='password' -p 127.0.0.1:3306:3306 -d --name mariadb mariadb --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+    # configure the database
+    sleep 20
+    docker exec -ti mariadb mariadb -u root -ppassword -w -e "CREATE DATABASE test_schema CHARSET utf8mb4; GRANT ALL ON test_schema.* TO scott;"
+
+    # To stop the container. It will also remove it.
+    docker stop mariadb
+
+**MSSQL configuration**:
+
+    # create the container with the proper configuration for sqlalchemy
+    # it will use the Developer version
+    docker run --rm -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=yourStrong(!)Password' -p 127.0.0.1:1433:1433 -d --name mssql mcr.microsoft.com/mssql/server
+
+    # configure the database
+    sleep 20
+    docker exec -it mssql /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q "sp_configure 'contained database authentication', 1; RECONFIGURE; CREATE DATABASE test CONTAINMENT = PARTIAL; ALTER DATABASE test SET ALLOW_SNAPSHOT_ISOLATION ON; ALTER DATABASE test SET READ_COMMITTED_SNAPSHOT ON; CREATE LOGIN scott WITH PASSWORD = 'tiger^5HHH'; ALTER SERVER ROLE sysadmin ADD MEMBER scott;"
+    docker exec -it mssql /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -d test -Q "CREATE SCHEMA test_schema"
+    docker exec -it mssql /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -d test -Q "CREATE SCHEMA test_schema_2"
+
+    # To stop the container. It will also remove it.
+    docker stop mssql
+
+NOTE: with this configuration the url to use is not the default one configured in setup, but `mssql+pymssql://scott:tiger^5HHH@127.0.0.1:1433/test`. It can be used with pytest by using `--db docker_mssql`.
+
+**Oracle configuration**:
+
+    # create the container with the proper configuration for sqlalchemy
+    docker run --rm --name oracle -p 127.0.0.1:1521:1521 -d -e ORACLE_PASSWORD=tiger -e ORACLE_DATABASE=test -e APP_USER=scott -e APP_USER_PASSWORD=tiger gvenzl/oracle-free:23-slim
+
+    # enter the database container and run the command
+    docker exec -ti oracle bash
+    >> sqlplus system/tiger@//localhost/FREEPDB1 <<EOF
+    CREATE USER test_schema IDENTIFIED BY tiger;
+    GRANT DBA TO SCOTT;
+    GRANT CREATE TABLE TO scott;
+    GRANT CREATE TABLE TO test_schema;
+    GRANT UNLIMITED TABLESPACE TO scott;
+    GRANT UNLIMITED TABLESPACE TO test_schema;
+    GRANT CREATE SESSION TO test_schema;
+    CREATE PUBLIC DATABASE LINK test_link CONNECT TO scott IDENTIFIED BY tiger USING 'FREEPDB1';
+    CREATE PUBLIC DATABASE LINK test_link2 CONNECT TO test_schema IDENTIFIED BY tiger USING 'FREEPDB1';
+    EOF
+
+    # To stop the container. It will also remove it.
+    docker stop oracle
+
+NOTE: with this configuration the url to use is `oracle+cx_oracle://scott:tiger@127.0.0.1:1521/?service_name=FREEPDB1`. It can be used with pytest by using `--dburi oracle+cx_oracle://scott:tiger@127.0.0.1:1521/?service_name=FREEPDB1`.
+
+### CONFIGURING LOGGING
+
+SQLAlchemy logs its activity and debugging through Python\'s logging package. Any log target can be directed to the console with command line options, such as:
+
+    $ ./pytest test/orm/test_unitofwork.py -s \
+      --log-debug=sqlalchemy.pool --log-info=sqlalchemy.engine
+
+Above we add the pytest \"-s\" flag so that standard out is not suppressed.
+
+### DEVELOPING AND TESTING NEW DIALECTS
+
+See the file README.dialects.rst for detail on dialects.

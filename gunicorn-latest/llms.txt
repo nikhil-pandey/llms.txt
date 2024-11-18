@@ -1,0 +1,4014 @@
+2010-news.md
+
+---
+
+# Changelog - 2010
+
+## 0.12.0 / 2010-12-22
+
+  - Add support for logging configuration using a ini file. It uses the standard Python logging's module Configuration file format and allows anyone to use his custom file handler
+  - Add IPV6 support
+  - Add multidomain application example
+  - Improve gunicorn\_django command when importing settings module using DJANGO\_SETTINGS\_MODULE environment variable
+  - Send appropriate error status on http parsing
+  - Fix pidfile, set permissions so other user can read it and use it.
+  - Fix temporary file leaking
+  - Fix setpgrp issue, can now be launched via ubuntu upstart
+  - Set the number of workers to zero on WINCH
+
+## 0.11.2 / 2010-10-30
+
+  - Add SERVER\_SOFTWARE to the os.environ
+  - Add support for django settings environment variable
+  - Add support for logging configuration in Paster ini-files
+  - Improve arbiter notification in asynchronous workers
+  - Display the right error when a worker can't be used
+  - Fix Django support
+  - Fix HUP with Paster applications
+  - Fix readline in wsgi.input
+
+## 0.11.1 / 2010-09-02
+
+  - Implement max-requests feature to prevent memory leaks.
+  - Added 'worker\_exit' server hook.
+  - Reseed the random number generator after fork().
+  - Improve Eventlet worker.
+  - Fix Django command <span class="title-ref">run\_gunicorn</span>.
+  - Fix the default proc name internal setting.
+  - Workaround to prevent Gevent worker to segfault on MacOSX.
+
+## 0.11.0 / 2010-08-12
+
+  - Improve dramatically performances of Gevent and Eventlet workers
+  - Optimize HTTP parsing
+  - Drop Server and Date headers in start\_response when provided.
+  - Fix latency issue in async workers
+
+## 0.10.1 / 2010-08-06
+
+  - Improve gevent's workers. Add "egg:gunicorn\#gevent\_wsgi" worker using [gevent.wsgi](http://www.gevent.org/gevent.wsgi.html) and "egg:gunicorn\#gevent\_pywsgi" worker using [gevent.pywsgi](http://www.gevent.org/gevent.pywsgi.html) . **"egg:gunicorn\#gevent"** using our own HTTP parser is still here and is **recommended** for normal uses. Use the "gevent.wsgi" parser if you need really fast connections and don't need streaming, keepalive or ssl.
+  - Add pre/post request hooks
+  - Exit more quietly
+  - Fix gevent dns issue
+
+## 0.10.0 / 2010-07-08
+
+  - New HTTP parser.
+  - New HUP behaviour. Re-reads the configuration and then reloads all worker processes without changing the master process id. Helpful for code reloading and monitoring applications like supervisord and runit.
+  - Added a preload configuration parameter. By default, application code is now loaded after a worker forks. This couple with the new HUP handling can be used for dev servers to do hot code reloading. Using the preload flag can help a bit in small memory VM's.
+  - Allow people to pass command line arguments to WSGI applications. See: [examples/alt\_spec.py](http://github.com/benoitc/gunicorn/raw/master/examples/alt_spec.py)
+  - Added an example gevent reloader configuration: [examples/example\_gevent\_reloader.py](http://github.com/benoitc/gunicorn/blob/master/examples/example_gevent_reloader.py).
+  - New gevent worker "egg:gunicorn\#gevent2", working with gevent.wsgi.
+  - Internal refactoring and various bug fixes.
+  - New documentation website.
+
+## 0.9.1 / 2010-05-26
+
+  - Support https via X-Forwarded-Protocol or X-Forwarded-Ssl headers
+  - Fix configuration
+  - Remove -d options which was used instead of -D for daemon.
+  - Fix umask in unix socket
+
+## 0.9.0 / 2010-05-24
+
+  - Added *when\_ready* hook. Called just after the server is started
+  - Added *preload* setting. Load application code before the worker processes are forked.
+  - Refactored Config
+  - Fix pidfile
+  - Fix QUIT/HUP in async workers
+  - Fix reexec
+  - Documentation improvements
+
+## 0.8.1 / 2010-04-29
+
+  - Fix builtins import in config
+  - Fix installation with pip
+  - Fix Tornado WSGI support
+  - Delay application loading until after processing all configuration
+
+## 0.8.0 / 2010-04-22
+
+  - Refactored Worker management for better async support. Now use the -k option to set the type of request processing to use
+  - Added support for [Tornado](http://www.tornadoweb.org/)
+
+## 0.7.2 / 2010-04-15
+
+  - Added --spew option to help debugging (installs a system trace hook)
+  - Some fixes in async arbiters
+  - Fix a bug in start\_response on error
+
+## 0.7.1 / 2010-04-01
+
+  - Fix bug when responses have no body.
+
+## 0.7.0 / 2010-03-26
+
+  - Added support for [Eventlet](http://eventlet.net/) and [Gevent](http://www.gevent.org/) based workers.
+  - Added [Websockets](https://html.spec.whatwg.org/multipage/web-sockets.html) support
+  - Fix Chunked Encoding
+  - Fix SIGWINCH on [OpenBSD](https://www.openbsd.org/)
+  - Fix [PEP 333](https://www.python.org/dev/peps/pep-0333/) compliance for the write callable.
+
+## 0.6.5 / 2010-03-11
+
+  - Fix pidfile handling
+  - Fix Exception Error
+
+## 0.6.4 / 2010-03-08
+
+  - Use cStringIO for performance when possible.
+  - Fix worker freeze when a remote connection closes unexpectedly.
+
+## 0.6.3 / 2010-03-07
+
+  - Make HTTP parsing faster.
+  - Various bug fixes
+
+## 0.6.2 / 2010-03-01
+
+  - Added support for chunked response.
+  - Added proc\_name option to the config file.
+  - Improved the HTTP parser. It now uses buffers instead of strings to store temporary data.
+  - Improved performance when sending responses.
+  - Workers are now murdered by age (the oldest is killed first).
+
+## 0.6.1 / 2010-02-24
+
+  - Added gunicorn config file support for Django admin command
+  - Fix gunicorn config file. -c was broken.
+  - Removed TTIN/TTOU from workers which blocked other signals.
+
+## 0.6.0 / 2010-02-22
+
+  - Added setproctitle support
+  - Change privilege switch behavior. We now work like NGINX, master keeps the permissions, new uid/gid permissions are only set for workers.
+
+## 0.5.1 / 2010-02-22
+
+  - Fix umask
+  - Added Debian packaging
+
+## 0.5.0 / 2010-02-20
+
+  - Added [configuration file](configuration.html) handler.
+  - Added support for pre/post fork hooks
+  - Added support for before\_exec hook
+  - Added support for unix sockets
+  - Added launch of workers processes under different user/group
+  - Added umask option
+  - Added SCRIPT\_NAME support
+  - Better support of some exotic settings for Django projects
+  - Better support of Paste-compatible applications
+  - Some refactoring to make the code easier to hack
+  - Allow multiple keys in request and response headers
+
+---
+
+2011-news.md
+
+---
+
+# Changelog - 2011
+
+## 0.13.4 / 2011-09-23
+
+  - fix util.closerange function used to prevent leaking fds on python 2.5 (typo)
+
+## 0.13.3 / 2011-09-19
+
+  - refactor gevent worker
+  - prevent leaking fds on reexec
+  - fix inverted request\_time computation
+
+## 0.13.2 / 2011-09-17
+
+  - Add support for Tornado 2.0 in tornado worker
+  - Improve access logs: allows customisation of the log format & add request time
+  - Logger module is now pluggable
+  - Improve graceful shutdown in Python versions \>= 2.6
+  - Fix post\_request root arity for compatibility
+  - Fix sendfile support
+  - Fix Django reloading
+
+## 0.13.1 / 2011-08-22
+
+  - Fix unix socket. log argument was missing.
+
+## 0.13.0 / 2011-08-22
+
+  - Improve logging: allows file-reopening and add access log file compatible with the [apache combined log format](http://httpd.apache.org/docs/2.0/logs.html#combined)
+  - Add the possibility to set custom SSL headers. X-Forwarded-Protocol and X-Forwarded-SSL are still the default
+  - New <span class="title-ref">on\_reload</span> hook to customize how gunicorn spawn new workers on SIGHUP
+  - Handle projects with relative path in django\_gunicorn command
+  - Preserve path parameters in PATH\_INFO
+  - post\_request hook now accepts the environ as argument.
+  - When stopping the arbiter, close the listener asap.
+  - Fix Django command <span class="title-ref">run\_gunicorn</span> in settings reloading
+  - Fix [Tornado](http://www.tornadoweb.org/) worker exiting
+  - Fix the use of sendfile in wsgi.file\_wrapper
+
+## 0.12.2 / 2011-05-18
+
+  - Add wsgi.file\_wrapper optimised for FreeBSD, Linux & MacOSX (use sendfile if available)
+  - Fix django run\_gunicorn command. Make sure we reload the application code.
+  - Fix django localisation
+  - Compatible with gevent 0.14dev
+
+## 0.12.1 / 2011-03-23
+
+  - Add "on\_starting" hook. This hook can be used to set anything before the arbiter really start
+  - Support bdist\_rpm in setup
+  - Improve content-length handling (pep 3333)
+  - Improve Django support
+  - Fix daemonizing (\#142)
+  - Fix ipv6 handling
+
+---
+
+2012-news.md
+
+---
+
+# Changelog - 2012
+
+## 0.17.0 / 2012-12-25
+
+  - allows gunicorn to bind to multiple address
+  - add SSL support
+  - add syslog support
+  - add nworkers\_changed hook
+  - add response arg for post\_request hook
+  - parse command line with argparse (replace deprecated optparse)
+  - fix PWD detection in arbiter
+  - miscellaneous PEP8 fixes
+
+## 0.16.1 / 2012-11-19
+
+  - Fix packaging
+
+## 0.16.0 / 2012-11-19
+
+  - **Added support for Python 3.2 & 3.3**
+  - Expose --pythonpath command to all gunicorn commands
+  - Honor $PORT environment variable, useful for deployment on heroku
+  - Removed support for Python 2.5
+  - Make sure we reopen the logs on the console
+  - Fix django settings module detection from path
+  - Reverted timeout for client socket. Fix issue on blocking issues.
+  - Fixed gevent worker
+
+## 0.15.0 / 2012-10-18
+
+  - new documentation site on <http://docs.gunicorn.org>
+  - new website on <http://gunicorn.org>
+  - add [haproxy PROXY protocol](http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt) support
+  - add ForwardedAllowIPS option: allows to filter Front-end's IPs allowed to handle X-Forwarded-\* headers.
+  - add callable hooks for paster config
+  - add x-forwarded-proto as secure scheme default (Heroku is using this)
+  - allows gunicorn to load a pre-compiled application
+  - support file reopening & reexec for all loggers
+  - initialize the logging config file with defaults.
+  - set timeout for client socket (slow client DoS).
+  - NoMoreData, ChunkMissingTerminator, InvalidChunkSize are now IOError exceptions
+  - fix graceful shutdown in gevent
+  - fix limit request line check
+
+## 0.14.6 / 2012-07-26
+
+  - fix gevent & subproces
+  - fix request line length check
+  - fix keepalive = 0
+  - fix tornado worker
+
+## 0.14.5 / 2012-06-24
+
+  - fix logging during daemonisation
+
+## 0.14.4 / 2012-06-24
+
+  - new --graceful-timeout option
+  - fix multiple issues with request limit
+  - more fixes in django settings resolutions
+  - fix gevent.core import
+  - fix keepalive=0 in eventlet worker
+  - fix handle\_error display with the unix worker
+  - fix tornado.wsgi.WSGIApplication calling error
+  - **breaking change**: take the control on graceful reload back. graceful can't be overridden anymore using the on\_reload function.
+
+## 0.14.3 / 2012-05-15
+
+  - improvement: performance of http.body.Body.readline()
+  - improvement: log HTTP errors in access log like Apache
+  - improvement: display traceback when the worker fails to boot
+  - improvement: makes gunicorn work with gevent 1.0
+  - examples: websocket example now supports hybi13
+  - fix: reopen log files after initialization
+  - fix: websockets support
+  - fix: django1.4 support
+  - fix: only load the paster application 1 time
+
+## 0.14.2 / 2012-03-16
+
+  - add validate\_class validator: allows to use a class or a method to initialize the app during in-code configuration
+  - add support for max\_requests in tornado worker
+  - add support for disabling x\_forwarded\_for\_header in tornado worker
+  - gevent\_wsgi is now an alias of gevent\_pywsgi
+  - Fix gevent\_pywsgi worker
+
+## 0.14.1 / 2012-03-02
+
+  - fixing source archive, reducing its size
+
+## 0.14.0 / 2012-02-27
+
+  - check if Request line is too large: You can now pass the parameter `--limit-request-line` or set the `limit_request_line` in your configuration file to set the max size of the request line in bytes.
+  - limit the number of headers fields and their size. Add `--limit-request-field` and `limit-request-field-size` settings
+  - add `p` variable to the log access format to log pidfile
+  - add `{HeaderName}o` variable to the logo access format to log the response header HeaderName
+  - request header is now logged with the variable `{HeaderName}i` in the access log file
+  - improve error logging
+  - support logging.configFile
+  - support django 1.4 in both gunicorn\_django & run\_gunicorn command
+  - improve reload in django run\_gunicorn command (should just work now)
+  - allows people to set the `X-Forwarded-For` header key and disable it by setting an empty string.
+  - fix support of Tornado
+  - many other fixes.
+
+---
+
+2013-news.md
+
+---
+
+# Changelog - 2013
+
+## 18.0 / 2013-08-26
+
+  - new: add `-e/--env` command line argument to pass an environment variables to gunicorn
+  - new: add `--chdir` command line argument to specified directory before apps loading. - new: add wsgi.file\_wrapper support in async workers
+  - new: add `--paste` command line argument to set the paster config file
+  - deprecated: the command `gunicorn_django` is now deprecated. You should now run your application with the WSGI interface installed with your project (see <https://docs.djangoproject.com/en/1.4/howto/deployment/wsgi/gunicorn/>) for more infos.
+  - deprecated: the command `gunicorn_paste` is deprecated. You now should use the new `--paste` argument to set the configuration file of your paster application.
+  - fix: Removes unmatched leading quote from the beginning of the default access log format string
+  - fix: null timeout
+  - fix: gevent worker
+  - fix: don't reload the paster app when using pserve
+  - fix: after closing for error do not keep alive the connection
+  - fix: responses 1xx, 204 and 304 should not force the connection to be closed
+
+## 17.5 / 2013-07-03
+
+  - new: add signals documentation
+  - new: add post\_worker\_init hook for workers
+  - new: try to use gunicorn.conf.py in current folder as the default config file.
+  - fix graceful timeout with the Eventlet worker
+  - fix: don't raise an error when closing the socket if already closed
+  - fix: fix --settings parameter for django application and try to find the django settings when using the `gunicorn` command.
+  - fix: give the initial global\_conf to paster application
+  - fix: fix 'Expect: 100-continue' support on Python 3
+
+### New versioning:
+
+With this release, the versioning of Gunicorn is changing. Gunicorn is stable since a long time and there is no point to release a "1.0" now. It should have been done since a long time. 0.17 really meant it was the 17th stable version. From the beginning we have only 2 kind of releases:
+
+major release: releases with major changes or huge features added services releases: fixes and minor features added So from now we will apply the following versioning `<major>.<service>`. For example `17.5` is a service release.
+
+## 0.17.4 / 2013-04-24
+
+  - fix unix socket address parsing
+
+## 0.17.3 / 2013-04-23
+
+  - add systemd sockets support
+  - add `python -m gunicorn.app.wsgiapp` support
+  - improve logger class inheritance
+  - exit when the config file isn't found
+  - add the -R option to enable stdio inheritance in daemon mode
+  - don't close file descriptors \> 3 in daemon mode
+  - improve STDOUT/STDERR logging
+  - fix pythonpath option
+  - fix pidfile creation on Python 3
+  - fix gevent worker exit
+  - fix ipv6 detection when the platform isn't supporting it
+
+## 0.17.2 / 2013-01-07
+
+  - optimize readline
+  - make imports errors more visible when loading an app or a logging class
+  - fix tornado worker: don't pass ssl options if there are none
+  - fix PEP3333: accept only bytetrings in the response body
+  - fix support on CYGWIN platforms
+
+## 0.17.1 / 2013-01-05
+
+  - add syslog facility name setting
+  - fix `--version` command line argument
+  - fix wsgi url\_scheme for https
+
+---
+
+2014-news.md
+
+---
+
+# Changelog - 2014
+
+\> **Note** \> Please see \[news\](news.md) for the latest changes.
+
+## 19.1.1 / 2014-08-16
+
+### Changes
+
+#### Core
+
+  - fix `835`: display correct pid of already running instance
+  - fix `833`: fix <span class="title-ref">PyTest</span> class in setup.py.
+
+#### Logging
+
+  - fix `838`: statsd logger, send statsd timing metrics in milliseconds
+  - fix `839`: statsd logger, allows for empty log message while pushing metrics and restore worker number in DEBUG logs
+  - fix `850`: add timezone to logging
+  - fix `853`: Respect logger\_class setting unless statsd is on
+
+#### AioHttp worker
+
+  - fix `830` make sure gaiohttp worker is shipped with gunicorn.
+
+## 19.1 / 2014-07-26
+
+### Changes
+
+#### Core
+
+  - fix `785`: handle binary type address given to a client socket address
+  - fix graceful shutdown. make sure QUIT and TERMS signals are switched everywhere.
+  - `799`: fix support loading config from module
+  - `805`: fix check for file-like objects
+  - fix `815`: args validation in WSGIApplication.init
+  - fix `787`: check if we load a pyc file or not.
+
+#### Tornado worker
+
+  - fix `771`: support tornado 4.0
+  - fix `783`: x\_headers error. The x-forwarded-headers option has been removed in [c4873681299212d6082cd9902740eef18c2f14f1](https://github.com/benoitc/gunicorn/commit/c4873681299212d6082cd9902740eef18c2f14f1). The discussion is available on `633`.
+
+#### AioHttp worker
+
+  - fix: fetch all body in input. fix `803`
+  - fix: don't install the worker if python \< 3.3
+  - fix `822`: Support UNIX sockets in gaiohttp worker
+
+#### Async worker
+
+  - fix `790`: StopIteration shouldn't be caught at this level.
+
+#### Logging
+
+  - add statsd logging handler fix `748`
+
+#### Paster
+
+  - fix `809`: Set global logging configuration from a Paste config.
+
+#### Extra
+
+  - fix RuntimeError in gunicorn.reloader (`807`)
+
+#### Documentation
+
+  - update faq: put a note on how [watch logs in the console](http://docs.gunicorn.org/en/latest/faq.html#why-i-don-t-see-any-logs-in-the-console) since many people asked for it.
+
+## 19.0 / 2014-06-12
+
+Gunicorn 19.0 is a major release with new features and fixes. This version improve a lot the usage of Gunicorn with python 3 by adding [two new workers](http://docs.gunicorn.org/en/latest/design.html#asyncio-workers) to it: <span class="title-ref">gthread</span> a fully threaded async worker using futures and <span class="title-ref">gaiohttp</span> a worker using asyncio.
+
+### Breaking Changes
+
+#### Switch QUIT and TERM signals
+
+With this change, when gunicorn receives a QUIT all the workers are killed immediately and exit and TERM is used for the graceful shutdown.
+
+Note: the old behaviour was based on the NGINX but the new one is more correct according the following doc:
+
+<https://www.gnu.org/software/libc/manual/html_node/Termination-Signals.html>
+
+also it is complying with the way the signals are sent by heroku:
+
+<https://devcenter.heroku.com/articles/python-faq#what-constraints-exist-when-developing-applications-on-heroku>
+
+#### Deprecations
+
+<span class="title-ref">run\_gunicorn</span>, <span class="title-ref">gunicorn\_django</span> and <span class="title-ref">gunicorn\_paster</span> are now completely deprecated and will be removed in the next release. Use the <span class="title-ref">gunicorn</span> command instead.
+
+### Changes
+
+#### core
+
+  - add aiohttp worker named <span class="title-ref">gaiohttp</span> using asyncio. Full async worker on python 3.
+  - fix HTTP-violating excess whitespace in write\_error output
+  - fix: try to log what happened in the worker after a timeout, add a <span class="title-ref">worker\_abort</span> hook on SIGABRT signal.
+  - fix: save listener socket name in workers so we can handle buffered keep-alive requests after the listener has closed.
+  - add on\_exit hook called just before exiting gunicorn.
+  - add support for python 3.4
+  - fix: do not swallow unexpected errors when reaping
+  - fix: remove incompatible SSL option with python 2.6
+  - add new async gthread worker and <span class="title-ref">--threads</span> options allows to set multiple threads to listen on connection
+  - deprecate <span class="title-ref">gunicorn\_django</span> and <span class="title-ref">gunicorn\_paster</span>
+  - switch QUIT and TERM signal
+  - reap workers in SIGCHLD handler
+  - add universal wheel support
+  - use <span class="title-ref">email.utils.formatdate</span> in gunicorn.util.http\_date
+  - deprecate the <span class="title-ref">--debug</span> option
+  - fix: log exceptions that occur after response start …
+  - allows loading of applications from <span class="title-ref">.pyc</span> files (\#693)
+  - fix: issue \#691, raw\_env config file parsing
+  - use a dynamic timeout to wait for the optimal time. (Reduce power usage)
+  - fix python3 support when notifying the arbiter
+  - add: honor $WEB\_CONCURRENCY environment variable. Useful for heroku setups.
+  - add: include tz offset in access log
+  - add: include access logs in the syslog handler.
+  - add --reload option for code reloading
+
+<!-- end list -->
+
+  - \- add the capability to load <span class="title-ref">gunicorn.base.Application</span> without the loading of  
+    the arguments of the command line. It allows you to \[embed gunicorn in your own application \<custom\>\](\#embed-gunicorn-in
+
+\--your-own-application-\<custom\>). - improve: set wsgi.multithread to True for async workers - fix logging: make sure to redirect wsgi.errors when needed - add: syslog logging can now be done to a unix socket - fix logging: don't try to redirect stdout/stderr to the logfile. - fix logging: don't propagate log - improve logging: file option can be overridden by the gunicorn options <span class="title-ref">--error-logfile</span> and <span class="title-ref">--access-logfile</span> if they are given. - fix: don't override [SERVER]()\* by the Host header - fix: handle\_error - add more option to configure SSL - fix: sendfile with SSL - add: worker\_int callback (to react on SIGTERM) - fix: don't depend on entry point for internal classes, now absolute modules path can be given. - fix: Error messages are now encoded in latin1 - fix: request line length check - improvement: proxy\_allow\_ips: Allow proxy protocol if "\*" specified - fix: run worker's <span class="title-ref">setup</span> method before setting num\_workers - fix: FileWrapper inherit from <span class="title-ref">object</span> now - fix: Error messages are now encoded in latin1 - fix: don't spam the console on SIGWINCH. - fix: logging -don't stringify T and D logging atoms (\#621) - add support for the latest django version - deprecate <span class="title-ref">run\_gunicorn</span> django option - fix: sys imported twice
+
+#### gevent worker
+
+  - fix: make sure to stop all listeners
+  - fix: monkey patching is now done in the worker
+  - fix: "global name 'hub' is not defined"
+  - fix: reinit <span class="title-ref">hub</span> on old versions of gevent
+  - support gevent 1.0
+  - fix: add subprocess in monkey patching
+  - fix: add support for multiple listener
+
+#### eventlet worker
+
+  - fix: merge duplicate EventletWorker.init\_process method (fixes \#657)
+  - fix: missing errno import for eventlet sendfile patch
+  - fix: add support for multiple listener
+
+#### tornado worker
+
+  - add graceful stop support
+
+---
+
+2015-news.md
+
+---
+
+# Changelog - 2015
+
+\> **Note** \> Please see \[news\](news.md) for the latest changes.
+
+## 19.4.3 / 2015/12/30
+
+  - fix: don't check if a file is writable using os.stat with SELINUX (`1171`)
+
+## 19.4.2 / 2015/12/29
+
+### Core
+
+  - improvement: handle HaltServer in manage\_workers (`1095`)
+  - fix: Do not rely on sendfile sending requested count (`1155`)
+  - fix: claridy --no-sendfile default (`1156`)
+  - fix: LoggingCatch sendfile failure from no file descriptor (`1160`)
+
+### Logging
+
+  - fix: Always send access log to syslog if syslog is on
+  - fix: check auth before trying to own a file (`1157`)
+
+### Documentation
+
+  - fix: Fix Slowloris broken link. (`1142`)
+  - Tweak markup in faq.rst
+
+### Testing
+
+  - fix: gaiohttp test (`1164`)
+
+## 19.4.1 / 2015/11/25
+
+  - fix tornado worker (`1154`)
+
+## 19.4.0 / 2015/11/20
+
+### Core
+
+  - fix: make sure that a user is able to access to the logs after dropping a privilege (`1116`)
+  - improvement: inherit the <span class="title-ref">Exception</span> class where it needs to be (`997`)
+  - fix: make sure headers are always encoded as latin1 RFC 2616 (`1102`)
+  - improvement: reduce arbiter noise (`1078`)
+  - fix: don't close the unix socket when the worker exit (`1088`)
+  - improvement: Make last logged worker count an explicit instance var (`1078`)
+  - improvement: prefix config file with its type (`836`)
+  - improvement: pidfile handing (`1042`)
+  - fix: catch OSError as well as ValueError on race condition (`1052`)
+  - improve support of ipv6 by backporting urlparse.urlsplit from Python 2.7 to Python 2.6.
+  - fix: raise InvalidRequestLine when the line contains malicious data (`1023`)
+  - fix: fix argument to disable sendfile
+  - fix: add gthread to the list of supported workers (`1011`)
+  - improvement: retry socket binding up to five times upon EADDRNOTAVAIL (`1004`)
+  - **breaking change**: only honor headers that can be encoded in ascii to comply to the RFC 7230 (See `1151`).
+
+### Logging
+
+  - add new parameters to access log (`1132`)
+  - fix: make sure that files handles are correctly reopened on HUP (`627`)
+  - include request URL in error message (`1071`)
+  - get username in access logs (`1069`)
+  - fix statsd logging support on Python 3 (`1010`)
+
+### Testing
+
+  - use last version of mock.
+  - many fixes in Travis CI support
+  - miscellaneous improvements in tests
+
+### Thread worker
+
+  - fix: Fix self.nr usage in ThreadedWorker so that auto restart works as expected (`1031`)
+
+### Gevent worker
+
+  - fix quit signal handling (`1128`)
+  - add support for Python 3 (`1066`)
+  - fix: make graceful shutdown thread-safe (`1032`)
+
+### Tornado worker
+
+  - fix ssl options (`1146`, `1135`)
+  - don't check timeout when stopping gracefully (`1106`)
+
+### AIOHttp worker
+
+  - add SSL support (`1105`)
+
+### Documentation
+
+  - fix link to proc name setting (`1144`)
+  - fix worker class documentation (`1141`, `1104`)
+  - clarify graceful timeout documentation (`1137`)
+  - don't duplicate NGINX config files examples (`1050`, `1048`)
+  - add <span class="title-ref">web.py</span> framework example (`1117`)
+  - update Debian/Ubuntu installations instructions (`1112`)
+  - clarify <span class="title-ref">pythonpath</span> setting description (`1080`)
+  - tweak some example for python3
+  - clarify <span class="title-ref">sendfile</span> documentation
+  - miscellaneous typos in source code comments (thanks\!)
+  - clarify why REMOTE\_ADD may not be the user's IP address (`1037`)
+
+### Misc
+
+  - fix: reloader should survive SyntaxError (`994`)
+  - fix: expose the reloader class to the worker.
+
+## 19.3.0 / 2015/03/06
+
+### Core
+
+  - fix: `978` make sure a listener is inheritable
+  - add <span class="title-ref">check\_config</span> class method to workers
+  - fix: `983` fix select timeout in sync worker with multiple connections
+  - allows workers to access to the reloader. close `984`
+  - raise TypeError instead of AssertionError
+
+### Logging
+
+  - make Logger.loglevel a class attribute
+
+### Documentation
+
+  - fix: `988` fix syntax errors in examples/gunicorn\_rc
+
+## 19.2.1 / 2015/02/4
+
+### Logging
+
+  - expose loglevel in the Logger class
+
+### AsyncIO worker (gaiohttp)
+
+  - fix `977` fix initial crash
+
+### Documentation
+
+  - document security mailing-list in the contributing page.
+
+## 19.2 / 2015/01/30
+
+### Core
+
+  - optimize the sync workers when listening on a single interface
+  - add <span class="title-ref">--sendfile</span> settings to enable/disable sendfile. fix `856` .
+  - add the selectors module to the code base. `886`
+  - add <span class="title-ref">--max-requests-jitter</span> setting to set the maximum jitter to add to the max-requests setting.
+  - fix `899` propagate proxy\_protocol\_info to keep-alive requests
+  - fix `863` worker timeout: dynamic timeout has been removed
+  - fix: Avoid world writable file
+
+### Logging
+
+  - fix `941` set logconfig default to paster more trivially
+  - add statsd-prefix config setting: set the prefix to use when emitting statsd metrics
+  - `832` log to console by default
+
+### Thread Worker
+
+  - fix `908` make sure the worker can continue to accept requests
+
+### Eventlet Worker
+
+  - fix `867` Fix eventlet shutdown to actively shut down the workers.
+
+### Documentation
+
+Many improvements and fixes have been done, see the detailed changelog for more information.
+
+---
+
+2016-news.md
+
+---
+
+# Changelog - 2016
+
+\> **Note** \> Please see \[news\](news.md) for the latest changes
+
+## 19.6.0 / 2016/05/21
+
+### Core & Logging
+
+  - improvement of the binary upgrade behaviour using USR2: remove file locking (`1270`)
+  - add the `--capture-output` setting to capture stdout/stderr tot the log file (`1271`)
+  - Allow disabling `sendfile()` via the `SENDFILE` environment variable (`1252`)
+  - fix reload under pycharm (`1129`)
+
+### Workers
+
+  - fix: make sure to remove the signal from the worker pipe (`1269`)
+  - fix: **gthread** worker, handle removed socket in the select loop (`1258`)
+
+## 19.5.0 / 2016/05/10
+
+### Core
+
+  - fix: Ensure response to HEAD request won't have message body
+  - fix: lock domain socket and remove on last arbiter exit (`1220`)
+  - improvement: use EnvironmentError instead of socket.error (`939`)
+  - add: new `FORWARDED_ALLOW_IPS` environment variable (`1205`)
+  - fix: infinite recursion when destroying sockets (`1219`)
+  - fix: close sockets on shutdown (`922`)
+  - fix: clean up sys.exc\_info calls to drop circular refs (`1228`)
+  - fix: do post\_worker\_init after load\_wsgi (`1248`)
+
+### Workers
+
+  - fix access logging in gaiohttp worker (`1193`)
+  - eventlet: handle QUIT in a new coroutine (`1217`)
+  - gevent: remove obsolete exception clauses in run (`1218`)
+  - tornado: fix extra "Server" response header (`1246`)
+  - fix: unblock the wait loop under python 3.5 in sync worker (`1256`)
+
+### Logging
+
+  - fix: log message for listener reloading (`1181`)
+  - Let logging module handle traceback printing (`1201`)
+  - improvement: Allow configuring logger\_class with statsd\_host (`1188`)
+  - fix: traceback formatting (`1235`)
+  - fix: print error logs on stderr and access logs on stdout (`1184`)
+
+### Documentation
+
+  - Simplify installation instructions in gunicorn.org (`1072`)
+  - Fix URL and default worker type in example\_config (`1209`)
+  - update django doc url to 1.8 lts (`1213`)
+  - fix: miscellaneous wording corrections (`1216`)
+  - Add PSF License Agreement of selectors.py to NOTICE (:issue: <span class="title-ref">1226</span>)
+  - document LOGGING overriding (`1051`)
+  - put a note that error logs are only errors from Gunicorn (`1124`)
+  - add a note about the requirements of the threads workers under python 2.x (`1200`)
+  - add access\_log\_format to config example (`1251`)
+
+### Tests
+
+  - Use more pytest.raises() in test\_http.py
+
+## 19.4.5 / 2016/01/05
+
+  - fix: NameError fileno in gunicorn.http.wsgi (`1178`)
+
+## 19.4.4 / 2016/01/04
+
+  - fix: check if a fileobject can be used with sendfile(2) (`1174`)
+  - doc: be more descriptive in errorlog option (`1173`)
+
+---
+
+2017-news.md
+
+---
+
+# Changelog - 2017
+
+\> **Note** \> Please see \[news\](news.md) for the latest changes
+
+## 19.7.1 / 2017/03/21
+
+  - fix: continue if SO\_REUSEPORT seems to be available but fails (`1480`)
+  - fix: support non-decimal values for the umask command line option (`1325`)
+
+## 19.7.0 / 2017/03/01
+
+  - The previously deprecated `gunicorn_django` command has been removed. Use the \[gunicorn-cmd\](\#gunicorn-cmd) command-line interface instead.
+  - The previously deprecated `django_settings` setting has been removed. Use the \[raw-env\](\#raw-env) setting instead.
+  - The default value of \[ssl-version\](\#ssl-version) has been changed from `ssl.PROTOCOL_TLSv1` to `ssl.PROTOCOL_SSLv23`.
+  - fix: initialize the group access list when initgroups is set (`1297`)
+  - add environment variables to gunicorn access log format (`1291`)
+  - add --paste-global-conf option (`1304`)
+  - fix: print access logs to STDOUT (`1184`)
+  - remove upper limit on max header size config (`1313`)
+  - fix: print original exception on AppImportError (`1334`)
+  - use SO\_REUSEPORT if available (`1344`)
+  - [fix leak](https://github.com/benoitc/gunicorn/commit/b4c41481e2d5ef127199a4601417a6819053c3fd) of duplicate file descriptor for bound sockets.
+  - add --reload-engine option, support inotify and other backends (`1368`, `1459`)
+  - fix: reject request with invalid HTTP versions
+  - add `child_exit` callback (`1394`)
+  - add support for eventlets \_AlreadyHandled object (`1406`)
+  - format boot tracebacks properly with reloader (`1408`)
+  - refactor socket activation and fd inheritance for better support of SystemD (`1310`)
+  - fix: o fds are given by default in gunicorn (`1423`)
+  - add ability to pass settings to GUNICORN\_CMD\_ARGS environment variable which helps in container world (`1385`)
+  - fix: catch access denied to pid file (`1091`)
+  - many additions and improvements to the documentation
+
+### Breaking Change
+
+  - **Python 2.6.0** is the last supported version
+
+---
+
+2018-news.md
+
+---
+
+# Changelog - 2018
+
+\> **Note** \> Please see \[news\](news.md) for the latest changes
+
+## 19.9.0 / 2018/07/03
+
+  - fix: address a regression that prevented syslog support from working (`1668`, `1773`)
+  - fix: correctly set <span class="title-ref">REMOTE\_ADDR</span> on versions of Python 3 affected by [Python Issue 30205](https://bugs.python.org/issue30205) (`1755`, `1796`)
+  - fix: show zero response length correctly in access log (`1787`)
+  - fix: prevent raising <span class="title-ref">AttributeError</span> when `--reload` is not passed in case of a <span class="title-ref">SyntaxError</span> raised from the WSGI application. (`1805`, `1806`)
+  - The internal module `gunicorn.workers.async` was renamed to `gunicorn.workers.base_async` since `async` is now a reserved word in Python 3.7. (`1527`)
+
+## 19.8.1 / 2018/04/30
+
+  - fix: secure scheme headers when bound to a unix socket (`1766`, `1767`)
+
+## 19.8.0 / 2018/04/28
+
+  - Eventlet 0.21.0 support (`1584`)
+  - Tornado 5 support (`1728`, `1752`)
+  - support watching additional files with `--reload-extra-file` (`1527`)
+  - support configuring logging with a dictionary with `--logging-config-dict` (`1087`, `1110`, `1602`)
+  - add support for the `--config` flag in the `GUNICORN_CMD_ARGS` environment variable (`1576`, `1581`)
+  - disable `SO_REUSEPORT` by default and add the `--reuse-port` setting (`1553`, `1603`, `1669`)
+  - fix: installing <span class="title-ref">inotify</span> on MacOS no longer breaks the reloader (`1540`, `1541`)
+  - fix: do not throw `TypeError` when `SO_REUSEPORT` is not available (`1501`, `1491`)
+  - fix: properly decode HTTP paths containing certain non-ASCII characters (`1577`, `1578`)
+  - fix: remove whitespace when logging header values under gevent (`1607`)
+  - fix: close unlinked temporary files (`1327`, `1428`)
+  - fix: parse `--umask=0` correctly (`1622`, `1632`)
+  - fix: allow loading applications using relative file paths (`1349`, `1481`)
+  - fix: force blocking mode on the gevent sockets (`880`, `1616`)
+  - fix: preserve leading <span class="title-ref">/</span> in request path (`1512`, `1511`)
+  - fix: forbid contradictory secure scheme headers
+  - fix: handle malformed basic authentication headers in access log (`1683`, `1684`)
+  - fix: defer handling of `USR1` signal to a new greenlet under gevent (`1645`, `1651`)
+  - fix: the threaded worker would sometimes close the wrong keep-alive connection under Python 2 (`1698`, `1699`)
+  - fix: re-open log files on `USR1` signal using `handler._open` to support subclasses of `FileHandler` (`1739`, `1742`)
+  - deprecation: the `gaiohttp` worker is deprecated, see the \[worker-class\](\#worker-class) documentation for more information (`1338`, `1418`, `1569`)
+
+---
+
+2019-news.md
+
+---
+
+# Changelog - 2019
+
+\> **Note** \> Please see \[news\](news.md) for the latest changes
+
+## 20.0.4 / 2019/11/26
+
+  - fix binding a socket using the file descriptor
+  - remove support for the <span class="title-ref">bdist\_rpm</span> build
+
+## 20.0.3 / 2019/11/24
+
+  - fixed load of a config file without a Python extension
+  - fixed <span class="title-ref">socketfromfd.fromfd</span> when defaults are not set
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+we now warn when we load a config file without Python Extension
+
+</div>
+
+## 20.0.2 / 2019/11/23
+
+  - fix changelog
+
+## 20.0.1 / 2019/11/23
+
+  - fixed the way the config module is loaded. <span class="title-ref">\_\_file\_\_</span> is now available
+  - fixed <span class="title-ref">wsgi.input\_terminated</span>. It is always true.
+  - use the highest protocol version of openssl by default
+  - only support Python \>= 3.5
+  - added <span class="title-ref">\_\_repr\_\_</span> method to <span class="title-ref">Config</span> instance
+  - fixed support of AIX platform and musl libc in <span class="title-ref">socketfromfd.fromfd</span> function
+  - fixed support of applications loaded from a factory function
+  - fixed chunked encoding support to prevent any [request smuggling](https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn)
+  - Capture os.sendfile before patching in gevent and eventlet workers. fix <span class="title-ref">RecursionError</span>.
+  - removed locking in reloader when adding new files
+  - load the WSGI application before the loader to pick up all files
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+this release add official support for applications loaded from a factory function as documented in Flask and other places.
+
+</div>
+
+## 19.10.0 / 2019/11/23
+
+  - unblock select loop during reload of a sync worker
+  - security fix: http desync attack
+  - handle <span class="title-ref">wsgi.input\_terminated</span>
+  - added support for str and bytes in unix socket addresses
+  - fixed <span class="title-ref">max\_requests</span> setting
+  - headers values are now encoded as LATN1, not ASCII
+  - fixed \`InotifyReloadeder\`: handle <span class="title-ref">module.\_\_file\_\_</span> is None
+  - fixed compatibility with tornado 6
+  - fixed root logging
+  - Prevent removalof unix sockets from <span class="title-ref">reuse\_port</span>
+  - Clear tornado ioloop before os.fork
+  - Miscellaneous fixes and improvement for linting using Pylint
+
+## 20.0 / 2019/10/30
+
+  - Fixed <span class="title-ref">fdopen</span> <span class="title-ref">RuntimeWarning</span> in Python 3.8
+  - Added check and exception for str type on value in Response process\_headers method.
+  - Ensure WSGI header value is string before conducting regex search on it.
+  - Added pypy3 to list of tested environments
+  - Grouped <span class="title-ref">StopIteration</span> and <span class="title-ref">KeyboardInterrupt</span> exceptions with same body together in Arbiter.run()
+  - Added <span class="title-ref">setproctitle</span> module to <span class="title-ref">extras\_require</span> in setup.py
+  - Avoid unnecessary chown of temporary files
+  - Logging: Handle auth type case insensitively
+  - Removed <span class="title-ref">util.import\_module</span>
+  - Removed fallback for <span class="title-ref">types.SimpleNamespace</span> in tests utils
+  - Use <span class="title-ref">SourceFileLoader</span> instead instead of <span class="title-ref">execfile\_</span>
+  - Use <span class="title-ref">importlib</span> instead of <span class="title-ref">\_\_import\_\_</span> and eval\`
+  - Fixed eventlet patching
+  - Added optional [datadog](https://www.datadoghq.com) tags for statsd metrics
+  - Header values now are encoded using latin-1, not ascii.
+  - Rewritten <span class="title-ref">parse\_address</span> util added test
+  - Removed redundant super() arguments
+  - Simplify <span class="title-ref">futures</span> import in gthread module
+  - Fixed worker\_connections\` setting to also affects the Gthread worker type
+  - Fixed setting max\_requests
+  - Bump minimum Eventlet and Gevent versions to 0.24 and 1.4
+  - Use Python default SSL cipher list by default
+  - handle <span class="title-ref">wsgi.input\_terminated</span> extension
+  - Simplify Paste Deployment documentation
+  - Fix root logging: root and logger are same level.
+  - Fixed typo in ssl\_version documentation
+  - Documented systemd deployment unit examples
+  - Added systemd sd\_notify support
+  - Fixed typo in gthread.py
+  - Added [tornado](https://www.tornadoweb.org/) 5 and 6 support
+  - Declare our setuptools dependency
+  - Added support to <span class="title-ref">--bind</span> to open file descriptors
+  - Document how to serve WSGI app modules from Gunicorn
+  - Provide guidance on X-Forwarded-For access log in documentation
+  - Add support for named constants in the <span class="title-ref">--ssl-version</span> flag
+  - Clarify log format usage of header & environment in documentation
+  - Fixed systemd documentation to properly setup gunicorn unix socket
+  - Prevent removal unix socket for reuse\_port
+  - Fix <span class="title-ref">ResourceWarning</span> when reading a Python config module
+  - Remove unnecessary call to dict keys method
+  - Support str and bytes for UNIX socket addresses
+  - fixed \`InotifyReloadeder\`: handle <span class="title-ref">module.\_\_file\_\_</span> is None
+  - <span class="title-ref">/dev/shm</span> as a convenient alternative to making your own tmpfs mount in fchmod FAQ
+  - fix examples to work on python3
+  - Fix typo in <span class="title-ref">--max-requests</span> documentation
+  - Clear tornado ioloop before os.fork
+  - Miscellaneous fixes and improvement for linting using Pylint
+
+### Breaking Change
+
+  - Removed gaiohttp worker
+  - Drop support for Python 2.x
+  - Drop support for EOL Python 3.2 and 3.3
+  - Drop support for Paste Deploy server blocks
+
+---
+
+2020-news.md
+
+---
+
+# Changelog - 2020
+
+\> **Note** \> Please see \[news\](news.md) for the latest changes
+
+---
+
+2021-news.md
+
+---
+
+# Changelog - 2021
+
+\> **Note** \> Please see \[news\](news.md) for the latest changes
+
+## 20.1.0 - 2021-02-12
+
+  - document WEB\_CONCURRENCY is set by, at least, Heroku
+  - capture peername from accept: Avoid calls to getpeername by capturing the peer name returned by accept
+  - log a warning when a worker was terminated due to a signal
+  - fix tornado usage with latest versions of Django
+  - add support for python -m gunicorn
+  - fix systemd socket activation example
+  - allows to set wsgi application in config file using <span class="title-ref">wsgi\_app</span>
+  - document <span class="title-ref">--timeout = 0</span>
+  - always close a connection when the number of requests exceeds the max requests
+  - Disable keepalive during graceful shutdown
+  - kill tasks in the gthread workers during upgrade
+  - fix latency in gevent worker when accepting new requests
+  - fix file watcher: handle errors when new worker reboot and ensure the list of files is kept
+  - document the default name and path of the configuration file
+  - document how variable impact configuration
+  - document the <span class="title-ref">$PORT</span> environment variable
+  - added milliseconds option to request\_time in access\_log
+  - added PIP requirements to be used for example
+  - remove version from the Server header
+  - fix sendfile: use <span class="title-ref">socket.sendfile</span> instead of <span class="title-ref">os.sendfile</span>
+  - reloader: use absolute path to prevent empty to prevent0 <span class="title-ref">InotifyError</span> when a file is added to the working directory
+  - Add --print-config option to print the resolved settings at startup.
+  - remove the <span class="title-ref">--log-dict-config</span> CLI flag because it never had a working format (the <span class="title-ref">logconfig\_dict</span> setting in configuration files continues to work)
+
+\*\* Breaking changes \*\*
+
+  - minimum version is Python 3.5
+  - remove version from the Server header
+
+\*\* Documentation \*\*
+
+\*\* Others \*\*
+
+  - miscellaneous changes in the code base to be a better citizen with Python 3
+  - remove dead code
+  - fix documentation generation
+
+---
+
+2023-news.md
+
+---
+
+# Changelog - 2023
+
+## 21.2.0 - 2023-07-19
+
+  - fix thread worker: revert change considering connection as idle .
+
+**\* NOTE**\*
+
+This is fixing the bad file description error.
+
+## 21.1.0 - 2023-07-18
+
+  - fix thread worker: fix socket removal from the queue
+
+## 21.0.1 - 2023-07-17
+
+  - fix documentation build
+
+## 21.0.0 - 2023-07-17
+
+  - support python 3.11
+  - fix gevent and eventlet workers
+  - fix threads support (gththread): improve performance and unblock requests
+  - SSL: now use SSLContext object
+  - HTTP parser: miscellaneous fixes
+  - remove unnecessary setuid calls
+  - fix testing
+  - improve logging
+  - miscellaneous fixes to core engine
+
+**\* RELEASE NOTE**\*
+
+We made this release major to start our new release cycle. More info will be provided on our discussion forum.
+
+---
+
+2024-news.md
+
+---
+
+# Changelog - 2024
+
+## 23.0.0 - 2024-08-10
+
+  - minor docs fixes (`3217`, `3089`, `3167`)
+  - worker\_class parameter accepts a class (`3079`)
+  - fix deadlock if request terminated during chunked parsing (`2688`)
+  - permit receiving Transfer-Encodings: compress, deflate, gzip (`3261`)
+  - permit Transfer-Encoding headers specifying multiple encodings. note: no parameters, still (`3261`)
+  - sdist generation now explicitly excludes sphinx build folder (`3257`)
+  - decode bytes-typed status (as can be passed by gevent) as utf-8 instead of raising <span class="title-ref">TypeError</span> (`2336`)
+  - raise correct Exception when encounting invalid chunked requests (`3258`)
+  - the SCRIPT\_NAME and PATH\_INFO headers, when received from allowed forwarders, are no longer restricted for containing an underscore (`3192`)
+  - include IPv6 loopback address `[::1]` in default for \[forwarded-allow-ips\](\#forwarded-allow-ips) and \[proxy-allow-ips\](\#proxy-allow-ips) (`3192`)
+
+\*\* NOTE \*\*
+
+  - The SCRIPT\_NAME change mitigates a regression that appeared first in the 22.0.0 release
+  - Review your \[forwarded-allow-ips\](\#forwarded-allow-ips) setting if you are still not seeing the SCRIPT\_NAME transmitted
+  - Review your \[forwarder-headers\](\#forwarder-headers) setting if you are missing headers after upgrading from a version prior to 22.0.0
+
+\*\* Breaking changes \*\*
+
+  - refuse requests where the uri field is empty (`3255`)
+  - refuse requests with invalid CR/LR/NUL in heade field values (`3253`)
+  - remove temporary `--tolerate-dangerous-framing` switch from 22.0 (`3260`)
+  - If any of the breaking changes affect you, be aware that now refused requests can post a security problem, especially so in setups involving request pipe-lining and/or proxies.
+
+## 22.0.0 - 2024-04-17
+
+  - use <span class="title-ref">utime</span> to notify workers liveness
+  - migrate setup to pyproject.toml
+  - fix numerous security vulnerabilities in HTTP parser (closing some request smuggling vectors)
+  - parsing additional requests is no longer attempted past unsupported request framing
+  - on HTTP versions \< 1.1 support for chunked transfer is refused (only used in exploits)
+  - requests conflicting configured or passed SCRIPT\_NAME now produce a verbose error
+  - Trailer fields are no longer inspected for headers indicating secure scheme
+  - support Python 3.12
+
+\*\* Breaking changes \*\*
+
+  - minimum version is Python 3.7
+  - the limitations on valid characters in the HTTP method have been bounded to Internet Standards
+  - requests specifying unsupported transfer coding (order) are refused by default (rare)
+  - HTTP methods are no longer casefolded by default (IANA method registry contains none affected)
+  - HTTP methods containing the number sign (\#) are no longer accepted by default (rare)
+  - HTTP versions \< 1.0 or \>= 2.0 are no longer accepted by default (rare, only HTTP/1.1 is supported)
+  - HTTP versions consisting of multiple digits or containing a prefix/suffix are no longer accepted
+  - HTTP header field names Gunicorn cannot safely map to variables are silently dropped, as in other software
+  - HTTP headers with empty field name are refused by default (no legitimate use cases, used in exploits)
+  - requests with both Transfer-Encoding and Content-Length are refused by default (such a message might indicate an attempt to perform request smuggling)
+  - empty transfer codings are no longer permitted (reportedly seen with really old & broken proxies)
+
+\*\* SECURITY \*\*
+
+  - fix CVE-2024-1135
+
+---
+
+community.md
+
+---
+
+# Community
+
+Use these channels to communicate about the project.
+
+## Project Management & Discussions
+
+Gunicorn uses [GitHub for the project management](https://github.com/benoitc/gunicorn/projects). GitHub issues are used for 3 different purposes:
+
+>   - [Bug tracker](https://github.com/benoitc/gunicorn/projects/2) : to check latest bug
+>   - [Forum](https://github.com/benoitc/gunicorn/projects/4) : Stackoverflow-style questions about Gunicorn usage
+>   - [Mailing list](https://github.com/benoitc/gunicorn/projects/3) : Discussion of Gunicorn development, new features and project management.
+
+Project maintenance guidelines are available on the [wiki](https://github.com/benoitc/gunicorn/wiki/Project-management) .
+
+## IRC
+
+The Gunicorn channel is on the [Freenode](http://freenode.net/) IRC network. You can chat with other on [\#gunicorn channel](http://webchat.freenode.net/?channels=gunicorn).
+
+## Issue Tracking
+
+Bug reports, enhancement requests and tasks generally go in the [Github issue tracker](http://github.com/benoitc/gunicorn/issues).
+
+## Security Issues
+
+The security mailing list is a place to report security issues. Only developers are subscribed to it. To post a message to the list use the address to <security@gunicorn.org> .
+
+---
+
+configure.md
+
+---
+
+# Configuration Overview
+
+Gunicorn reads configuration information from five places.
+
+Gunicorn first reads environment variables for some configuration \[settings \<settings\>\](\#settings-\<settings\>).
+
+Gunicorn then reads configuration from a framework specific configuration file. Currently this only affects Paster applications.
+
+The third source of configuration information is an optional configuration file `gunicorn.conf.py` searched in the current working directory or specified using a command line argument. Anything specified in this configuration file will override any framework specific settings.
+
+The fourth place of configuration information are command line arguments stored in an environment variable named `GUNICORN_CMD_ARGS`.
+
+Lastly, the command line arguments used to invoke Gunicorn are the final place considered for configuration settings. If an option is specified on the command line, this is the value that will be used.
+
+When a configuration file is specified in the command line arguments and in the `GUNICORN_CMD_ARGS` environment variable, only the configuration file specified on the command line is used.
+
+  - Once again, in order of least to most authoritative:
+    
+    1.  Environment Variables
+    2.  Framework Settings
+    3.  Configuration File
+    4.  `GUNICORN_CMD_ARGS`
+    5.  Command Line
+
+\> **Note** \> To print your resolved configuration when using the command line or the configuration file you can run the following command:
+
+    $ gunicorn --print-config APP_MODULE
+    
+    To check your resolved configuration when using the command line or the
+    configuration file you can run the following command::
+    
+    $ gunicorn --check-config APP_MODULE
+    
+    It also allows you to know if your application can be launched.
+
+## Command Line
+
+If an option is specified on the command line, it overrides all other values that may have been specified in the app specific settings, or in the optional configuration file. Not all Gunicorn settings are available to be set from the command line. To see the full list of command line settings you can do the usual:
+
+    $ gunicorn -h
+
+There is also a `--version` flag available to the command line scripts that isn't mentioned in the list of \[settings \<settings\>\](\#settings-\<settings\>).
+
+## Configuration File
+
+The configuration file should be a valid Python source file with a **python extension** (e.g. <span class="title-ref">gunicorn.conf.py</span>). It only needs to be readable from the file system. More specifically, it does not have to be on the module path (sys.path, PYTHONPATH). Any Python is valid. Just consider that this will be run every time you start Gunicorn (including when you signal Gunicorn to reload).
+
+To set a parameter, just assign to it. There's no special syntax. The values you provide will be used for the configuration values.
+
+For instance:
+
+    import multiprocessing
+    
+    bind = "127.0.0.1:8000"
+    workers = multiprocessing.cpu_count() * 2 + 1
+
+All the settings are mentioned in the \[settings \<settings\>\](\#settings-\<settings\>) list.
+
+## Framework Settings
+
+Currently, only Paster applications have access to framework specific settings. If you have ideas for providing settings to WSGI applications or pulling information from Django's settings.py feel free to open an [issue](https://github.com/benoitc/gunicorn/issues) to let us know.
+
+### Paster Applications
+
+In your INI file, you can specify to use Gunicorn as the server like such:
+
+`` `ini     [server:main]     use = egg:gunicorn#main     host = 192.168.0.1     port = 80     workers = 2     proc_name = brim  Any parameters that Gunicorn knows about will automatically be inserted into ``\` the base configuration. Remember that these will be overridden by the config file and/or the command line.
+
+---
+
+custom.md
+
+---
+
+# Custom Application
+
+<div class="versionadded">
+
+19.0
+
+</div>
+
+Sometimes, you want to integrate Gunicorn with your WSGI application. In this case, you can inherit from <span class="title-ref">gunicorn.app.base.BaseApplication</span>.
+
+Here is a small example where we create a very small WSGI app and load it with a custom Application:
+
+<div class="literalinclude" data-start-after="# See the NOTICE for more information" data-lines="2-">
+
+../../examples/standalone\_app.py
+
+</div>
+
+## Using server hooks
+
+If you wish to include server hooks in your custom application, you can specify a function in the config options. Here is an example with the <span class="title-ref">pre\_fork</span> hook:
+
+`` `python    def pre_fork(server, worker):        print(f"pre-fork server {server} worker {worker}", file=sys.stderr)     # ...    if __name__ == '__main__':        options = {            'bind': '%s:%s' % ('127.0.0.1', '8080'),            'workers': number_of_workers(),            'pre_fork': pre_fork,        }   Direct Usage of Existing WSGI Apps ``\` ----------------------------------
+
+If necessary, you can run Gunicorn straight from Python, allowing you to specify a WSGI-compatible application at runtime. This can be handy for rolling deploys or in the case of using PEX files to deploy your application, as the app and Gunicorn can be bundled in the same PEX file. Gunicorn has this functionality built-in as a first class citizen known as <span class="title-ref">gunicorn.app.wsgiapp</span>. This can be used to run WSGI-compatible app instances such as those produced by Flask or Django. Assuming your WSGI API package is *exampleapi*, and your application instance is *app*, this is all you need to get going:
+
+    gunicorn.app.wsgiapp exampleapi:app
+
+This command will work with any Gunicorn CLI parameters or a config file - just pass them along as if you're directly giving them to Gunicorn:
+
+`` `bash    # Custom parameters    $ python gunicorn.app.wsgiapp exampleapi:app --bind=0.0.0.0:8081 --workers=4    # Using a config file    $ python gunicorn.app.wsgiapp exampleapi:app -c config.py  Note for those using PEX: use ``-c gunicorn`as your entry at build`\` time, and your compiled app should work with the entry point passed to it at run time.
+
+`` `bash # Generic pex build command via bash from root of exampleapi project $ pex . -v -c gunicorn -o compiledapp.pex # Running it ./compiledapp.pex exampleapi:app -c gunicorn_config.py ``\`
+
+---
+
+deploy.md
+
+---
+
+# Deploying Gunicorn
+
+We strongly recommend using Gunicorn behind a proxy server.
+
+## Nginx Configuration
+
+Although there are many HTTP proxies available, we strongly advise that you use [Nginx](https://nginx.org/). If you choose another proxy server you need to make sure that it buffers slow clients when you use default Gunicorn workers. Without this buffering Gunicorn will be easily susceptible to denial-of-service attacks. You can use [Hey](https://github.com/rakyll/hey) to check if your proxy is behaving properly.
+
+An [example configuration](https://github.com/benoitc/gunicorn/blob/master/examples/nginx.conf) file for fast clients with [Nginx](https://nginx.org/):
+
+<div class="literalinclude" data-language="nginx" data-caption="**nginx.conf**">
+
+../../examples/nginx.conf
+
+</div>
+
+If you want to be able to handle streaming request/responses or other fancy features like Comet, Long polling, or Web sockets, you need to turn off the proxy buffering. **When you do this** you must run with one of the async worker classes.
+
+To turn off buffering, you only need to add `proxy_buffering off;` to your `location` block:
+
+    ...
+    location @proxy_to_app {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+        proxy_buffering off;
+    
+        proxy_pass http://app_server;
+    }
+    ...
+
+If you want to ignore aborted requests like health check of Load Balancer, some of which close the connection without waiting for a response, you need to turn on [ignoring client abort](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_client_abort).
+
+To ignore aborted requests, you only need to add `proxy_ignore_client_abort on;` to your `location` block:
+
+    ...
+    proxy_ignore_client_abort on;
+    ...
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+The default value of `proxy_ignore_client_abort` is `off`. Error code 499 may appear in Nginx log and `Ignoring EPIPE` may appear in Gunicorn log if loglevel is set to `debug`.
+
+</div>
+
+It is recommended to pass protocol information to Gunicorn. Many web frameworks use this information to generate URLs. Without this information, the application may mistakenly generate 'http' URLs in 'https' responses, leading to mixed content warnings or broken applications. To configure Nginx to pass an appropriate header, add a `proxy_set_header` directive to your `location` block:
+
+    ...
+    proxy_set_header X-Forwarded-Proto $scheme;
+    ...
+
+If you are running Nginx on a different host than Gunicorn you need to tell Gunicorn to trust the `X-Forwarded-*` headers sent by Nginx. By default, Gunicorn will only trust these headers if the connection comes from localhost. This is to prevent a malicious client from forging these headers:
+
+    $ gunicorn -w 3 --forwarded-allow-ips="10.170.3.217,10.170.3.220" test:app
+
+When the Gunicorn host is completely firewalled from the external network such that all connections come from a trusted proxy (e.g. Heroku) this value can be set to '*'. Using this value ispotentially dangerous*\* if connections to Gunicorn may come from untrusted proxies or directly from clients since the application may be tricked into serving SSL-only content over an insecure connection.
+
+Gunicorn 19 introduced a breaking change concerning how `REMOTE_ADDR` is handled. Previous to Gunicorn 19 this was set to the value of `X-Forwarded-For` if received from a trusted proxy. However, this was not in compliance with `3875` which is why the `REMOTE_ADDR` is now the IP address of **the proxy** and **not the actual user**.
+
+To have access logs indicate **the actual user** IP when proxied, set \[access-log-format\](\#access-log-format) with a format which includes `X-Forwarded-For`. For example, this format uses `X-Forwarded-For` in place of `REMOTE_ADDR`:
+
+    %({x-forwarded-for}i)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
+
+It is also worth noting that the `REMOTE_ADDR` will be completely empty if you bind Gunicorn to a UNIX socket and not a TCP `host:port` tuple.
+
+## Using Virtualenv
+
+To serve an app from a [Virtualenv](https://pypi.python.org/pypi/virtualenv) it is generally easiest to just install Gunicorn directly into the Virtualenv. This will create a set of Gunicorn scripts for that Virtualenv which can be used to run applications normally.
+
+If you have Virtualenv installed, you should be able to do something like this:
+
+    $ mkdir ~/venvs/
+    $ virtualenv ~/venvs/webapp
+    $ source ~/venvs/webapp/bin/activate
+    $ pip install gunicorn
+    $ deactivate
+
+Then you just need to use one of the three Gunicorn scripts that was installed into `~/venvs/webapp/bin`.
+
+Note: You can force the installation of Gunicorn in your Virtualenv by passing `-I` or `--ignore-installed` option to pip:
+
+    $ source ~/venvs/webapp/bin/activate
+    $ pip install -I gunicorn
+
+## Monitoring
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+Make sure that when using either of these service monitors you do not enable the Gunicorn's daemon mode. These monitors expect that the process they launch will be the process they need to monitor. Daemonizing will fork-exec which creates an unmonitored process and generally just confuses the monitor services.
+
+</div>
+
+### Gaffer
+
+#### Using Gafferd and gaffer
+
+[Gaffer](https://gaffer.readthedocs.io/) can be used to monitor Gunicorn. A simple configuration is:
+
+    [process:gunicorn]
+    cmd = gunicorn -w 3 test:app
+    cwd = /path/to/project
+
+Then you can easily manage Gunicorn using [Gaffer](https://gaffer.readthedocs.io/).
+
+#### Using a Procfile
+
+Create a `Procfile` in your project:
+
+    gunicorn = gunicorn -w 3 test:app
+
+You can launch any other applications that should be launched at the same time.
+
+Then you can start your Gunicorn application using [Gaffer](https://gaffer.readthedocs.io/):
+
+    gaffer start
+
+If gafferd is launched you can also load your Procfile in it directly:
+
+    gaffer load
+
+All your applications will be then supervised by gafferd.
+
+### Runit
+
+A popular method for deploying Gunicorn is to have it monitored by [runit](http://smarden.org/runit/). Here is an [example service](https://github.com/benoitc/gunicorn/blob/master/examples/gunicorn_rc) definition:
+
+    #!/bin/sh
+    
+    GUNICORN=/usr/local/bin/gunicorn
+    ROOT=/path/to/project
+    PID=/var/run/gunicorn.pid
+    
+    APP=main:application
+    
+    if [ -f $PID ]; then rm $PID; fi
+    
+    cd $ROOT
+    exec $GUNICORN -c $ROOT/gunicorn.conf.py --pid=$PID $APP
+
+Save this as `/etc/sv/[app_name]/run`, and make it executable (`chmod u+x /etc/sv/[app_name]/run`). Then run `ln -s /etc/sv/[app_name] /etc/service/[app_name]`. If runit is installed, Gunicorn should start running automatically as soon as you create the symlink.
+
+If it doesn't start automatically, run the script directly to troubleshoot.
+
+### Supervisor
+
+Another useful tool to monitor and control Gunicorn is [Supervisor](http://supervisord.org/). A [simple configuration](https://github.com/benoitc/gunicorn/blob/master/examples/supervisor.conf) is:
+
+    [program:gunicorn]
+    command=/path/to/gunicorn main:application -c /path/to/gunicorn.conf.py
+    directory=/path/to/project
+    user=nobody
+    autostart=true
+    autorestart=true
+    redirect_stderr=true
+
+### Upstart
+
+Using Gunicorn with upstart is simple. In this example we will run the app "myapp" from a virtualenv. All errors will go to `/var/log/upstart/myapp.log`.
+
+**/etc/init/myapp.conf**:
+
+    description "myapp"
+    
+    start on (filesystem)
+    stop on runlevel [016]
+    
+    respawn
+    setuid nobody
+    setgid nogroup
+    chdir /path/to/app/directory
+    
+    exec /path/to/virtualenv/bin/gunicorn myapp:app
+
+### Systemd
+
+A tool that is starting to be common on linux systems is [Systemd](https://www.freedesktop.org/wiki/Software/systemd/). It is a system services manager that allows for strict process management, resources and permissions control.
+
+Below are configuration files and instructions for using systemd to create a unix socket for incoming Gunicorn requests. Systemd will listen on this socket and start gunicorn automatically in response to traffic. Later in this section are instructions for configuring Nginx to forward web traffic to the newly created unix socket:
+
+**/etc/systemd/system/gunicorn.service**:
+
+    [Unit]
+    Description=gunicorn daemon
+    Requires=gunicorn.socket
+    After=network.target
+    
+    [Service]
+    # gunicorn can let systemd know when it is ready
+    Type=notify
+    NotifyAccess=main
+    # the specific user that our service will run as
+    User=someuser
+    Group=someuser
+    # this user can be transiently created by systemd
+    # DynamicUser=true
+    RuntimeDirectory=gunicorn
+    WorkingDirectory=/home/someuser/applicationroot
+    ExecStart=/usr/bin/gunicorn applicationname.wsgi
+    ExecReload=/bin/kill -s HUP $MAINPID
+    KillMode=mixed
+    TimeoutStopSec=5
+    PrivateTmp=true
+    # if your app does not need administrative capabilities, let systemd know
+    # ProtectSystem=strict
+    
+    [Install]
+    WantedBy=multi-user.target
+
+**/etc/systemd/system/gunicorn.socket**:
+
+    [Unit]
+    Description=gunicorn socket
+    
+    [Socket]
+    ListenStream=/run/gunicorn.sock
+    # Our service won't need permissions for the socket, since it
+    # inherits the file descriptor by socket activation.
+    # Only the nginx daemon will need access to the socket:
+    SocketUser=www-data
+    SocketGroup=www-data
+    # Once the user/group is correct, restrict the permissions:
+    SocketMode=0660
+    
+    [Install]
+    WantedBy=sockets.target
+
+Next enable and start the socket (it will autostart at boot too):
+
+    systemctl enable --now gunicorn.socket
+
+Now let's see if the nginx daemon will be able to connect to the socket. Running `sudo -u www-data curl --unix-socket /run/gunicorn.sock http`, our Gunicorn service will be automatically started and you should see some HTML from your server in the terminal.
+
+\> **Note** \> systemd employs cgroups to track the processes of a service, so it doesn't need pid files. In the rare case that you need to find out the service main pid, you can use `systemctl show --value -p MainPID gunicorn.service`, but if you only want to send a signal an even better option is `systemctl kill -s HUP gunicorn.service`.
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+`www-data` is the default nginx user in debian, other distributions use different users (for example: `http` or `nginx`). Check your distro to know what to put for the socket user, and for the sudo command.
+
+</div>
+
+You must now configure your web proxy to send traffic to the new Gunicorn socket. Edit your `nginx.conf` to include the following:
+
+**/etc/nginx/nginx.conf**:
+
+    user www-data;
+    ...
+    http {
+        server {
+            listen          8000;
+            server_name     127.0.0.1;
+            location / {
+                proxy_pass http://unix:/run/gunicorn.sock;
+            }
+        }
+    }
+    ...
+
+\> **Note** \> The listen and server\_name used here are configured for a local machine. In a production server you will most likely listen on port 80, and use your URL as the server\_name.
+
+Now make sure you enable the nginx service so it automatically starts at boot:
+
+    systemctl enable nginx.service
+
+Either reboot, or start Nginx with the following command:
+
+    systemctl start nginx
+
+Now you should be able to test Nginx with Gunicorn by visiting <http://127.0.0.1:8000/> in any web browser. Systemd is now set up.
+
+## Logging
+
+Logging can be configured by using various flags detailed in the [configuration documentation](http://docs.gunicorn.org/en/latest/settings.html#logging) or by creating a [logging configuration file](https://github.com/benoitc/gunicorn/blob/master/examples/logging.conf). Send the `USR1` signal to rotate logs if you are using the logrotate utility:
+
+    kill -USR1 $(cat /var/run/gunicorn.pid)
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+Overriding the `LOGGING` dictionary requires to set `disable_existing_loggers: False` to not interfere with the Gunicorn logging.
+
+</div>
+
+<div class="warning">
+
+<div class="title">
+
+Warning
+
+</div>
+
+Gunicorn error log is here to log errors from Gunicorn, not from another application.
+
+</div>
+
+---
+
+design.md
+
+---
+
+# Design
+
+A brief description of the architecture of Gunicorn.
+
+## Server Model
+
+Gunicorn is based on the pre-fork worker model. This means that there is a central master process that manages a set of worker processes. The master never knows anything about individual clients. All requests and responses are handled completely by worker processes.
+
+### Master
+
+The master process is a simple loop that listens for various process signals and reacts accordingly. It manages the list of running workers by listening for signals like TTIN, TTOU, and CHLD. TTIN and TTOU tell the master to increase or decrease the number of running workers. CHLD indicates that a child process has terminated, in this case the master process automatically restarts the failed worker.
+
+### Sync Workers
+
+The most basic and the default worker type is a synchronous worker class that handles a single request at a time. This model is the simplest to reason about as any errors will affect at most a single request. Though as we describe below only processing a single request at a time requires some assumptions about how applications are programmed.
+
+`sync` worker does not support persistent connections - each connection is closed after response has been sent (even if you manually add `Keep-Alive` or `Connection: keep-alive` header in your application).
+
+### Async Workers
+
+The asynchronous workers available are based on [Greenlets](https://github.com/python-greenlet/greenlet) (via [Eventlet](http://eventlet.net/) and [Gevent](http://www.gevent.org/)). Greenlets are an implementation of cooperative multi-threading for Python. In general, an application should be able to make use of these worker classes with no changes.
+
+For full greenlet support applications might need to be adapted. When using, e.g., [Gevent](http://www.gevent.org/) and [Psycopg](http://initd.org/psycopg/) it makes sense to ensure [psycogreen](https://github.com/psycopg/psycogreen/) is installed and [setup](http://www.gevent.org/api/gevent.monkey.html#plugins).
+
+Other applications might not be compatible at all as they, e.g., rely on the original unpatched behavior.
+
+### Gthread Workers
+
+The worker <span class="title-ref">gthread</span> is a threaded worker. It accepts connections in the main loop. Accepted connections are added to the thread pool as a connection job. On keepalive connections are put back in the loop waiting for an event. If no event happens after the keepalive timeout, the connection is closed.
+
+### Tornado Workers
+
+There's also a Tornado worker class. It can be used to write applications using the Tornado framework. Although the Tornado workers are capable of serving a WSGI application, this is not a recommended configuration.
+
+### AsyncIO Workers
+
+Third-party workers can be usedd to use Gunicorn with asyncio frameworks.
+
+## Choosing a Worker Type
+
+The default synchronous workers assume that your application is resource-bound in terms of CPU and network bandwidth. Generally this means that your application shouldn't do anything that takes an undefined amount of time. An example of something that takes an undefined amount of time is a request to the internet. At some point the external network will fail in such a way that clients will pile up on your servers. So, in this sense, any web application which makes outgoing requests to APIs will benefit from an asynchronous worker.
+
+This resource bound assumption is why we require a buffering proxy in front of a default configuration Gunicorn. If you exposed synchronous workers to the internet, a DOS attack would be trivial by creating a load that trickles data to the servers. For the curious, [Hey](https://github.com/rakyll/hey) is an example of this type of load.
+
+Some examples of behavior requiring asynchronous workers:
+
+>   - Applications making long blocking calls (Ie, external web services)
+>   - Serving requests directly to the internet
+>   - Streaming requests and responses
+>   - Long polling
+>   - Web sockets
+>   - Comet
+
+## How Many Workers?
+
+DO NOT scale the number of workers to the number of clients you expect to have. Gunicorn should only need 4-12 worker processes to handle hundreds or thousands of requests per second.
+
+Gunicorn relies on the operating system to provide all of the load balancing when handling requests. Generally we recommend `(2 x $num_cores) + 1` as the number of workers to start off with. While not overly scientific, the formula is based on the assumption that for a given core, one worker will be reading or writing from the socket while the other worker is processing a request.
+
+Obviously, your particular hardware and application are going to affect the optimal number of workers. Our recommendation is to start with the above guess and tune using TTIN and TTOU signals while the application is under load.
+
+Always remember, there is such a thing as too many workers. After a point your worker processes will start thrashing system resources decreasing the throughput of the entire system.
+
+## How Many Threads?
+
+Since Gunicorn 19, a threads option can be used to process requests in multiple threads. Using threads assumes use of the gthread worker. One benefit from threads is that requests can take longer than the worker timeout while notifying the master process that it is not frozen and should not be killed. Depending on the system, using multiple threads, multiple worker processes, or some mixture, may yield the best results. For example, CPython may not perform as well as Jython when using threads, as threading is implemented differently by each. Using threads instead of processes is a good way to reduce the memory footprint of Gunicorn, while still allowing for application upgrades using the reload signal, as the application code will be shared among workers but loaded only in the worker processes (unlike when using the preload setting, which loads the code in the master process).
+
+---
+
+faq.md
+
+---
+
+# FAQ
+
+## WSGI Bits
+
+### How do I set SCRIPT\_NAME?
+
+By default `SCRIPT_NAME` is an empty string. The value could be set by setting `SCRIPT_NAME` in the environment or as an HTTP header. Note that this headers contains and underscore, so it is only accepted from trusted forwarders listed in the \[forwarded-allow-ips\](\#forwarded-allow-ips) setting.
+
+\> **Note** \> If your application should appear in a subfolder, your `SCRIPT_NAME` would typically start with single slash but contain no trailing slash.
+
+## Server Stuff
+
+### How do I reload my application in Gunicorn?
+
+You can gracefully reload by sending HUP signal to gunicorn:
+
+    $ kill -HUP masterpid
+
+### How might I test a proxy configuration?
+
+The [Hey](https://github.com/rakyll/hey) program is a great way to test that your proxy is correctly buffering responses for the synchronous workers:
+
+    $ hey -n 10000 -c 100 http://127.0.0.1:5000/
+
+This runs a benchmark of 10000 requests with 100 running concurrently.
+
+### How can I name processes?
+
+If you install the Python package [setproctitle](https://pypi.python.org/pypi/setproctitle) Gunicorn will set the process names to something a bit more meaningful. This will affect the output you see in tools like `ps` and `top`. This helps for distinguishing the master process as well as between masters when running more than one app on a single machine. See the [proc\_name](settings.html#proc-name) setting for more information.
+
+### Why is there no HTTP Keep-Alive?
+
+The default Sync workers are designed to run behind Nginx which only uses HTTP/1.0 with its upstream servers. If you want to deploy Gunicorn to handle unbuffered requests (ie, serving requests directly from the internet) you should use one of the async workers.
+
+## Worker Processes
+
+### How do I know which type of worker to use?
+
+Read the \[design\](\#design) page for help on the various worker types.
+
+### What types of workers are there?
+
+Check out the configuration docs for [worker\_class](settings.html#worker-class).
+
+### How can I figure out the best number of worker processes?
+
+Here is our recommendation for tuning the [number of workers](design.html#how-many-workers).
+
+### How can I change the number of workers dynamically?
+
+TTIN and TTOU signals can be sent to the master to increase or decrease the number of workers.
+
+To increase the worker count by one:
+
+    $ kill -TTIN $masterpid
+
+To decrease the worker count by one:
+
+    $ kill -TTOU $masterpid
+
+### Does Gunicorn suffer from the thundering herd problem?
+
+The thundering herd problem occurs when many sleeping request handlers, which may be either threads or processes, wake up at the same time to handle a new request. Since only one handler will receive the request, the others will have been awakened for no reason, wasting CPU cycles. At this time, Gunicorn does not implement any IPC solution for coordinating between worker processes. You may experience high load due to this problem when using many workers or threads. However [a work has been started](https://github.com/benoitc/gunicorn/issues/792) to remove this issue.
+
+### Why I don't see any logs in the console?
+
+In version 19.0, Gunicorn doesn't log by default in the console. To watch the logs in the console you need to use the option `--log-file=-`. In version 19.2, Gunicorn logs to the console by default again.
+
+## Kernel Parameters
+
+When dealing with large numbers of concurrent connections there are a handful of kernel parameters that you might need to adjust. Generally these should only affect sites with a very large concurrent load. These parameters are not specific to Gunicorn, they would apply to any sort of network server you may be running.
+
+These commands are for Linux. Your particular OS may have slightly different parameters.
+
+### How can I increase the maximum number of file descriptors?
+
+One of the first settings that usually needs to be bumped is the maximum number of open file descriptors for a given process. For the confused out there, remember that Unices treat sockets as files.
+
+<div class="warning">
+
+<div class="title">
+
+Warning
+
+</div>
+
+`sudo ulimit` may not work
+
+</div>
+
+Considering non-privileged users are not able to relax the limit, you should firstly switch to root user, increase the limit, then run gunicorn. Using `sudo ulimit` would not take effect.
+
+Try systemd's service unit file, or an initscript which runs as root.
+
+### How can I increase the maximum socket backlog?
+
+Listening sockets have an associated queue of incoming connections that are waiting to be accepted. If you happen to have a stampede of clients that fill up this queue new connections will eventually start getting dropped.
+
+    $ sudo sysctl -w net.core.somaxconn="2048"
+
+### How can I disable the use of `sendfile()`
+
+Disabling the use `sendfile()` can be done by using the `--no-sendfile` setting or by setting the environment variable `SENDFILE` to 0.
+
+## Troubleshooting
+
+### How do I fix Django reporting an `ImproperlyConfigured` error?
+
+With asynchronous workers, creating URLs with the `reverse` function of `django.core.urlresolvers` may fail. Use `reverse_lazy` instead.
+
+### How do I avoid Gunicorn excessively blocking in `os.fchmod`?
+
+The current heartbeat system involves calling `os.fchmod` on temporary file handlers and may block a worker for arbitrary time if the directory is on a disk-backed filesystem. For example, by default `/tmp` is not mounted as `tmpfs` in Ubuntu; in AWS an EBS root instance volume may sometimes hang for half a minute and during this time Gunicorn workers may completely block in `os.fchmod`. `os.fchmod` may introduce extra delays if the disk gets full. Also Gunicorn may refuse to start if it can't create the files when the disk is full.
+
+Currently to avoid these problems you can use a `tmpfs` mount (for a new directory or for `/tmp`) and pass its path to `--worker-tmp-dir`. First, check whether your `/tmp` is disk-backed or RAM-backed:
+
+    $ df /tmp
+    Filesystem     1K-blocks    Used Available Use% Mounted on
+    /dev/xvda1           ...     ...       ...  ... /
+
+No luck. If you are using Fedora or Ubuntu, you should already have a `tmpfs` mount at `/dev/shm`:
+
+    $ df /dev/shm
+    Filesystem     1K-blocks     Used Available Use% Mounted on
+    tmpfs                 ...     ...       ...  ... /dev/shm
+
+In this case you can set `--worker-tmp-dir /dev/shm`, otherwise you can create a new `tmpfs` mount:
+
+    sudo cp /etc/fstab /etc/fstab.orig
+    sudo mkdir /mem
+    echo 'tmpfs       /mem tmpfs defaults,size=64m,mode=1777,noatime,comment=for-gunicorn 0 0' | sudo tee -a /etc/fstab
+    sudo mount /mem
+
+Check the result:
+
+    $ df /mem
+    Filesystem     1K-blocks  Used Available Use% Mounted on
+    tmpfs              65536     0     65536   0% /mem
+
+Now you can set `--worker-tmp-dir /mem`.
+
+### Why are Workers Silently Killed?
+
+A sometimes subtle problem to debug is when a worker process is killed and there is little logging information about what happened.
+
+If you use a reverse proxy like NGINX you might see 502 returned to a client.
+
+In the gunicorn logs you might simply see `[35] [INFO] Booting worker with pid: 35`
+
+It's completely normal for workers to be stop and start, for example due to max-requests setting. Ordinarily gunicorn will capture any signals and log something.
+
+This particular failure case is usually due to a SIGKILL being received, as it's not possible to catch this signal silence is usually a common side effect\! A common cause of SIGKILL is when OOM killer terminates a process due to low memory condition.
+
+This is increasingly common in container deployments where memory limits are enforced by cgroups, you'll usually see evidence of this from dmesg:
+
+    dmesg | grep gunicorn
+    Memory cgroup out of memory: Kill process 24534 (gunicorn) score 1506 or sacrifice child
+    Killed process 24534 (gunicorn) total-vm:1016648kB, anon-rss:550160kB, file-rss:25824kB, shmem-rss:0kB
+
+In these instances adjusting the memory limit is usually your best bet, it's also possible to configure OOM not to send SIGKILL by default.
+
+---
+
+index.md
+
+---
+
+# Gunicorn - WSGI server
+
+![image](gunicorn.png)
+
+  - Website  
+    <http://gunicorn.org>
+
+  - Source code  
+    <https://github.com/benoitc/gunicorn>
+
+  - Issue tracker  
+    <https://github.com/benoitc/gunicorn/issues>
+
+  - IRC  
+    `#gunicorn` on Libera Chat
+
+  - Usage questions  
+    <https://github.com/benoitc/gunicorn/issues>
+
+Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork worker model ported from Ruby's Unicorn project. The Gunicorn server is broadly compatible with various web frameworks, simply implemented, light on server resources, and fairly speedy.
+
+## Features
+
+  - Natively supports WSGI, Django, and Paster
+  - Automatic worker process management
+  - Simple Python configuration
+  - Multiple worker configurations
+  - Various server hooks for extensibility
+  - Compatible with Python 3.x \>= 3.7
+
+## Contents
+
+<div class="toctree" data-maxdepth="2">
+
+install run configure settings instrumentation deploy signals custom design faq community news
+
+</div>
+
+---
+
+install.md
+
+---
+
+# Installation
+
+  - Requirements  
+    **Python 3.x \>= 3.7**
+
+To install the latest released version of Gunicorn:
+
+``` bash
+$ pip install gunicorn
+```
+
+## From Source
+
+You can install Gunicorn from source just as you would install any other Python package:
+
+``` bash
+$ pip install git+https://github.com/benoitc/gunicorn.git
+```
+
+This will allow you to keep up to date with development on GitHub:
+
+``` bash
+$ pip install -U git+https://github.com/benoitc/gunicorn.git
+```
+
+## Async Workers
+
+You may also want to install [Eventlet](http://eventlet.net) or [Gevent](http://www.gevent.org/) if you expect that your application code may need to pause for extended periods of time during request processing. Check out the [design docs](design.html) for more information on when you'll want to consider one of the alternate worker types.
+
+``` bash
+$ pip install greenlet            # Required for both
+$ pip install eventlet            # For eventlet workers
+$ pip install gunicorn[eventlet]  # Or, using extra
+$ pip install gevent              # For gevent workers
+$ pip install gunicorn[gevent]    # Or, using extra
+```
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+Both require `greenlet`, which should get installed automatically. If its installation fails, you probably need to install the Python headers. These headers are available in most package managers. On Ubuntu the package name for `apt-get` is `python-dev`.
+
+[Gevent](http://www.gevent.org/) also requires that `libevent` 1.4.x or 2.0.4 is installed. This could be a more recent version than what is available in your package manager. If [Gevent](http://www.gevent.org/) fails to build even with [libevent](http://libevent.org/) installed, this is the most likely reason.
+
+</div>
+
+## Extra Packages
+
+Some Gunicorn options require additional packages. You can use the `[extra]` syntax to install these at the same time as Gunicorn.
+
+Most extra packages are needed for alternate worker types. See the [design docs](design.html) for more information on when you'll want to consider an alternate worker type.
+
+  - `gunicorn[eventlet]` - Eventlet-based greenlets workers
+  - `gunicorn[gevent]` - Gevent-based greenlets workers
+  - `gunicorn[gthread]` - Threaded workers
+  - `gunicorn[tornado]` - Tornado-based workers, not recommended
+
+If you are running more than one instance of Gunicorn, the \[proc-name\](\#proc-name) setting will help distinguish between them in tools like `ps` and `top`.
+
+  - `gunicorn[setproctitle]` - Enables setting the process name
+
+Multiple extras can be combined, like `pip install gunicorn[gevent,setproctitle]`.
+
+## Debian GNU/Linux
+
+If you are using Debian GNU/Linux it is recommended that you use system packages to install Gunicorn except maybe when you want to use different versions of Gunicorn with virtualenv. This has a number of advantages:
+
+  - Zero-effort installation: Automatically starts multiple Gunicorn instances based on configurations defined in `/etc/gunicorn.d`.
+  - Sensible default locations for logs (`/var/log/gunicorn`). Logs can be automatically rotated and compressed using `logrotate`.
+  - Improved security: Can easily run each Gunicorn instance with a dedicated UNIX user/group.
+  - Sensible upgrade path: Upgrades to newer versions result in less downtime, handle conflicting changes in configuration options, and can be quickly rolled back in case of incompatibility. The package can also be purged entirely from the system in seconds.
+
+### stable ("buster")
+
+The version of Gunicorn in the [Debian](https://www.debian.org/) "stable" distribution is 19.9.0 (December 2020). You can install it using:
+
+``` bash
+$ sudo apt-get install gunicorn3
+```
+
+You can also use the most recent version 20.0.4 (December 2020) by using [Debian Backports](https://backports.debian.org/). First, copy the following line to your `/etc/apt/sources.list`:
+
+``` bash
+deb http://ftp.debian.org/debian buster-backports main
+```
+
+Then, update your local package lists:
+
+``` bash
+$ sudo apt-get update
+```
+
+You can then install the latest version using:
+
+``` bash
+$ sudo apt-get -t buster-backports install gunicorn
+```
+
+### oldstable ("stretch")
+
+While Debian releases newer than Stretch will give you gunicorn with Python 3 support no matter if you install the gunicorn or gunicorn3 package for Stretch you specifically have to install gunicorn3 to get Python 3 support.
+
+The version of Gunicorn in the [Debian](https://www.debian.org/) "oldstable" distribution is 19.6.0 (December 2020). You can install it using:
+
+``` bash
+$ sudo apt-get install gunicorn3
+```
+
+You can also use the most recent version 19.7.1 (December 2020) by using [Debian Backports](https://backports.debian.org/). First, copy the following line to your `/etc/apt/sources.list`:
+
+``` bash
+deb http://ftp.debian.org/debian stretch-backports main
+```
+
+Then, update your local package lists:
+
+``` bash
+$ sudo apt-get update
+```
+
+You can then install the latest version using:
+
+``` bash
+$ sudo apt-get -t stretch-backports install gunicorn3
+```
+
+### Testing ("bullseye") / Unstable ("sid")
+
+"bullseye" and "sid" contain the latest released version of Gunicorn 20.0.4 (December 2020). You can install it in the usual way:
+
+``` bash
+$ sudo apt-get install gunicorn
+```
+
+## Ubuntu
+
+[Ubuntu](https://www.ubuntu.com/) 20.04 LTS (Focal Fossa) or later contains the Gunicorn package by default 20.0.4 (December 2020) so that you can install it in the usual way:
+
+``` bash
+$ sudo apt-get update
+$ sudo apt-get install gunicorn
+```
+
+---
+
+instrumentation.md
+
+---
+
+# Instrumentation
+
+<div class="versionadded">
+
+19.1
+
+</div>
+
+Gunicorn provides an optional instrumentation of the arbiter and workers using the [statsD](https://github.com/etsy/statsd) protocol over UDP. Thanks to the `gunicorn.instrument.statsd` module, Gunicorn becomes a statsD client. The use of UDP cleanly isolates Gunicorn from the receiving end of the statsD metrics so that instrumentation does not cause Gunicorn to be held up by a slow statsD consumer.
+
+To use statsD, just tell Gunicorn where the statsD server is:
+
+`` `bash     $ gunicorn --statsd-host=localhost:8125 --statsd-prefix=service.app ...  The ``Statsd`logger overrides`gunicorn.glogging.Logger`to track`\` all requests. The following metrics are generated:
+
+  - `gunicorn.requests`: request rate per second
+  - `gunicorn.request.duration`: histogram of request duration (in millisecond)
+  - `gunicorn.workers`: number of workers managed by the arbiter (gauge)
+  - `gunicorn.log.critical`: rate of critical log messages
+  - `gunicorn.log.error`: rate of error log messages
+  - `gunicorn.log.warning`: rate of warning log messages
+  - `gunicorn.log.exception`: rate of exceptional log messages
+
+See the [statsd-host](settings.html#statsd-host) setting for more information.
+
+---
+
+news.md
+
+---
+
+# Changelog
+
+## 23.0.0 - 2024-08-10
+
+  - minor docs fixes (`3217`, `3089`, `3167`)
+  - worker\_class parameter accepts a class (`3079`)
+  - fix deadlock if request terminated during chunked parsing (`2688`)
+  - permit receiving Transfer-Encodings: compress, deflate, gzip (`3261`)
+  - permit Transfer-Encoding headers specifying multiple encodings. note: no parameters, still (`3261`)
+  - sdist generation now explicitly excludes sphinx build folder (`3257`)
+  - decode bytes-typed status (as can be passed by gevent) as utf-8 instead of raising <span class="title-ref">TypeError</span> (`2336`)
+  - raise correct Exception when encounting invalid chunked requests (`3258`)
+  - the SCRIPT\_NAME and PATH\_INFO headers, when received from allowed forwarders, are no longer restricted for containing an underscore (`3192`)
+  - include IPv6 loopback address `[::1]` in default for \[forwarded-allow-ips\](\#forwarded-allow-ips) and \[proxy-allow-ips\](\#proxy-allow-ips) (`3192`)
+
+\*\* NOTE \*\*
+
+  - The SCRIPT\_NAME change mitigates a regression that appeared first in the 22.0.0 release
+  - Review your \[forwarded-allow-ips\](\#forwarded-allow-ips) setting if you are still not seeing the SCRIPT\_NAME transmitted
+  - Review your \[forwarder-headers\](\#forwarder-headers) setting if you are missing headers after upgrading from a version prior to 22.0.0
+
+\*\* Breaking changes \*\*
+
+  - refuse requests where the uri field is empty (`3255`)
+  - refuse requests with invalid CR/LR/NUL in heade field values (`3253`)
+  - remove temporary `--tolerate-dangerous-framing` switch from 22.0 (`3260`)
+  - If any of the breaking changes affect you, be aware that now refused requests can post a security problem, especially so in setups involving request pipe-lining and/or proxies.
+
+## 22.0.0 - 2024-04-17
+
+  - use <span class="title-ref">utime</span> to notify workers liveness
+  - migrate setup to pyproject.toml
+  - fix numerous security vulnerabilities in HTTP parser (closing some request smuggling vectors)
+  - parsing additional requests is no longer attempted past unsupported request framing
+  - on HTTP versions \< 1.1 support for chunked transfer is refused (only used in exploits)
+  - requests conflicting configured or passed SCRIPT\_NAME now produce a verbose error
+  - Trailer fields are no longer inspected for headers indicating secure scheme
+  - support Python 3.12
+
+\*\* Breaking changes \*\*
+
+  - minimum version is Python 3.7
+  - the limitations on valid characters in the HTTP method have been bounded to Internet Standards
+  - requests specifying unsupported transfer coding (order) are refused by default (rare)
+  - HTTP methods are no longer casefolded by default (IANA method registry contains none affected)
+  - HTTP methods containing the number sign (\#) are no longer accepted by default (rare)
+  - HTTP versions \< 1.0 or \>= 2.0 are no longer accepted by default (rare, only HTTP/1.1 is supported)
+  - HTTP versions consisting of multiple digits or containing a prefix/suffix are no longer accepted
+  - HTTP header field names Gunicorn cannot safely map to variables are silently dropped, as in other software
+  - HTTP headers with empty field name are refused by default (no legitimate use cases, used in exploits)
+  - requests with both Transfer-Encoding and Content-Length are refused by default (such a message might indicate an attempt to perform request smuggling)
+  - empty transfer codings are no longer permitted (reportedly seen with really old & broken proxies)
+
+\*\* SECURITY \*\*
+
+  - fix CVE-2024-1135
+
+## History
+
+<div class="toctree" data-titlesonly="">
+
+2024-news 2023-news 2021-news 2020-news 2019-news 2018-news 2017-news 2016-news 2015-news 2014-news 2013-news 2012-news 2011-news 2010-news
+
+</div>
+
+---
+
+run.md
+
+---
+
+# Running Gunicorn
+
+You can run Gunicorn by using commands or integrate with popular frameworks like Django, Pyramid, or TurboGears. For deploying Gunicorn in production see \[deploy\](deploy.md).
+
+## Commands
+
+After installing Gunicorn you will have access to the command line script `gunicorn`.
+
+### gunicorn
+
+Basic usage:
+
+``` bash
+$ gunicorn [OPTIONS] [WSGI_APP]
+```
+
+Where `WSGI_APP` is of the pattern `$(MODULE_NAME):$(VARIABLE_NAME)`. The module name can be a full dotted path. The variable name refers to a WSGI callable that should be found in the specified module.
+
+<div class="versionchanged">
+
+20.1.0 `WSGI_APP` is optional if it is defined in a \[config\](\#config) file.
+
+</div>
+
+Example with the test app:
+
+`` `python     def app(environ, start_response):         """Simplest possible application object"""         data = b'Hello, World!\n'         status = '200 OK'         response_headers = [             ('Content-type', 'text/plain'),             ('Content-Length', str(len(data)))         ]         start_response(status, response_headers)         return iter([data])  You can now run the app with the following command:  .. code-block:: text      $ gunicorn --workers=2 test:app  The variable name can also be a function call. In that case the name ``\` will be imported from the module, then called to get the application object. This is commonly referred to as the "application factory" pattern.
+
+`` `python     def create_app():         app = FrameworkApp()         ...         return app  .. code-block:: text      $ gunicorn --workers=2 'test:create_app()'  Positional and keyword arguments can also be passed, but it is ``\` recommended to load configuration from environment variables rather than the command line.
+
+#### Commonly Used Arguments
+
+  - `-c CONFIG, --config=CONFIG` - Specify a config file in the form `$(PATH)`, `file:$(PATH)`, or `python:$(MODULE_NAME)`.
+  - `-b BIND, --bind=BIND` - Specify a server socket to bind. Server sockets can be any of `$(HOST)`, `$(HOST):$(PORT)`, `fd://$(FD)`, or `unix:$(PATH)`. An IP is a valid `$(HOST)`.
+  - `-w WORKERS, --workers=WORKERS` - The number of worker processes. This number should generally be between 2-4 workers per core in the server. Check the \[faq\](\#faq) for ideas on tuning this parameter.
+  - `-k WORKERCLASS, --worker-class=WORKERCLASS` - The type of worker process to run. You'll definitely want to read the production page for the implications of this parameter. You can set this to `$(NAME)` where `$(NAME)` is one of `sync`, `eventlet`, `gevent`, `tornado`, `gthread`. `sync` is the default. See the \[worker-class\](\#worker-class) documentation for more information.
+  - `-n APP_NAME, --name=APP_NAME` - If [setproctitle](https://pypi.python.org/pypi/setproctitle) is installed you can adjust the name of Gunicorn process as they appear in the process system table (which affects tools like `ps` and `top`).
+
+Settings can be specified by using environment variable \[GUNICORN\_CMD\_ARGS \<settings\>\](\#gunicorn\_cmd\_args-\<settings\>).
+
+See \[configuration\](\#configuration) and \[settings\](\#settings) for detailed usage.
+
+## Integration
+
+Gunicorn also provides integration for Django and Paste Deploy applications.
+
+### Django
+
+Gunicorn will look for a WSGI callable named `application` if not specified. So for a typical Django project, invoking Gunicorn would look like:
+
+``` bash
+$ gunicorn myproject.wsgi
+```
+
+\> **Note** \> This requires that your project be on the Python path; the simplest way to ensure that is to run this command from the same directory as your `manage.py` file.
+
+You can use the [--env](http://docs.gunicorn.org/en/latest/settings.html#raw-env) option to set the path to load the settings. In case you need it you can also add your application path to `PYTHONPATH` using the [--pythonpath](http://docs.gunicorn.org/en/latest/settings.html#pythonpath) option:
+
+``` bash
+$ gunicorn --env DJANGO_SETTINGS_MODULE=myproject.settings myproject.wsgi
+```
+
+### Paste Deployment
+
+Frameworks such as Pyramid and Turbogears are typically configured using Paste Deployment configuration files. If you would like to use these files with Gunicorn, there are two approaches.
+
+As a server runner, Gunicorn can serve your application using the commands from your framework, such as `pserve` or `gearbox`. To use Gunicorn with these commands, specify it as a server in your configuration file:
+
+`` `ini     [server:main]     use = egg:gunicorn#main     host = 127.0.0.1     port = 8080     workers = 3  This approach is the quickest way to get started with Gunicorn, but there are ``<span class="title-ref"> some limitations. Gunicorn will have no control over how the application is loaded, so settings such as reload\_ will have no effect and Gunicorn will be unable to hot upgrade a running application. Using the daemon\_ option may confuse your command line tool. Instead, use the built-in support for these features provided by that tool. For example, run </span><span class="title-ref">pserve --reload</span><span class="title-ref"> instead of specifying </span><span class="title-ref">reload = True</span><span class="title-ref"> in the server configuration block. For advanced configuration of Gunicorn, such as \`Server Hooks</span>\_ specifying a Gunicorn configuration file using the `config` key is supported.
+
+To use the full power of Gunicorn's reloading and hot code upgrades, use the [paste option](http://docs.gunicorn.org/en/latest/settings.html#paste) to run your application instead. When used this way, Gunicorn will use the application defined by the PasteDeploy configuration file, but Gunicorn will not use any server configuration defined in the file. Instead, [configure gunicorn](http://docs.gunicorn.org/en/latest/configure.html).
+
+For example:
+
+``` bash
+$ gunicorn --paste development.ini -b :8080 --chdir /path/to/project
+```
+
+Or use a different application:
+
+``` bash
+$ gunicorn --paste development.ini#admin -b :8080 --chdir /path/to/project
+```
+
+With both approaches, Gunicorn will use any loggers section found in Paste Deployment configuration file, unless instructed otherwise by specifying additional [logging settings](http://docs.gunicorn.org/en/latest/settings.html#logging).
+
+---
+
+settings.md
+
+---
+
+# Settings
+
+This is an exhaustive list of settings for Gunicorn. Some settings are only able to be set from a configuration file. The setting name is what should be used in the configuration file. The command line arguments are listed as well for reference on setting at the command line.
+
+\> **Note** \> Settings can be specified by using environment variable `GUNICORN_CMD_ARGS`. All available command line arguments can be used. For example, to specify the bind address and number of workers:
+
+    $ GUNICORN_CMD_ARGS="--bind=127.0.0.1 --workers=3" gunicorn app:app
+    
+    .. versionadded:: 19.7
+
+## Config File
+
+### `config`
+
+**Command line:** `-c CONFIG` or `--config CONFIG`
+
+**Default:** `'./gunicorn.conf.py'`
+
+\[The Gunicorn config file\<configuration\_file\>\](\#the-gunicorn-config-file\<configuration\_file\>).
+
+A string of the form `PATH`, `file:PATH`, or `python:MODULE_NAME`.
+
+Only has an effect when specified on the command line or as part of an application specific configuration.
+
+By default, a file named `gunicorn.conf.py` will be read from the same directory where gunicorn is being run.
+
+<div class="versionchanged">
+
+19.4 Loading the config from a Python module requires the `python:` prefix.
+
+</div>
+
+### `wsgi_app`
+
+**Default:** `None`
+
+A WSGI application path in pattern `$(MODULE_NAME):$(VARIABLE_NAME)`.
+
+<div class="versionadded">
+
+20.1.0
+
+</div>
+
+## Debugging
+
+### `reload`
+
+**Command line:** `--reload`
+
+**Default:** `False`
+
+Restart workers when code changes.
+
+This setting is intended for development. It will cause workers to be restarted whenever application code changes.
+
+The reloader is incompatible with application preloading. When using a paste configuration be sure that the server block does not import any application code or the reload will not work as designed.
+
+The default behavior is to attempt inotify with a fallback to file system polling. Generally, inotify should be preferred if available because it consumes less system resources.
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+In order to use the inotify reloader, you must have the `inotify` package installed.
+
+</div>
+
+### `reload_engine`
+
+**Command line:** `--reload-engine STRING`
+
+**Default:** `'auto'`
+
+The implementation that should be used to power \[reload\](\#reload).
+
+Valid engines are:
+
+  - `'auto'`
+  - `'poll'`
+  - `'inotify'` (requires inotify)
+
+<div class="versionadded">
+
+19.7
+
+</div>
+
+### `reload_extra_files`
+
+**Command line:** `--reload-extra-file FILES`
+
+**Default:** `[]`
+
+Extends \[reload\](\#reload) option to also watch and reload on additional files (e.g., templates, configurations, specifications, etc.).
+
+<div class="versionadded">
+
+19.8
+
+</div>
+
+### `spew`
+
+**Command line:** `--spew`
+
+**Default:** `False`
+
+Install a trace function that spews every line executed by the server.
+
+This is the nuclear option.
+
+### `check_config`
+
+**Command line:** `--check-config`
+
+**Default:** `False`
+
+Check the configuration and exit. The exit status is 0 if the configuration is correct, and 1 if the configuration is incorrect.
+
+### `print_config`
+
+**Command line:** `--print-config`
+
+**Default:** `False`
+
+Print the configuration settings as fully resolved. Implies \[check-config\](\#check-config).
+
+## Logging
+
+### `accesslog`
+
+**Command line:** `--access-logfile FILE`
+
+**Default:** `None`
+
+The Access log file to write to.
+
+`'-'` means log to stdout.
+
+### `disable_redirect_access_to_syslog`
+
+**Command line:** `--disable-redirect-access-to-syslog`
+
+**Default:** `False`
+
+Disable redirect access logs to syslog.
+
+<div class="versionadded">
+
+19.8
+
+</div>
+
+### `access_log_format`
+
+**Command line:** `--access-logformat STRING`
+
+**Default:** `'%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'`
+
+The access log format.
+
+| Identifier  | Description                           |
+| ----------- | ------------------------------------- |
+| h           | remote address                        |
+| l           | `'-'`                                 |
+| u           | user name (if HTTP Basic auth used)   |
+| t           | date of the request                   |
+| r           | status line (e.g. `GET / HTTP/1.1`)   |
+| m           | request method                        |
+| U           | URL path without query string         |
+| q           | query string                          |
+| H           | protocol                              |
+| s           | status                                |
+| B           | response length                       |
+| b           | response length or `'-'` (CLF format) |
+| f           | referrer (note: header is `referer`)  |
+| a           | user agent                            |
+| T           | request time in seconds               |
+| M           | request time in milliseconds          |
+| D           | request time in microseconds          |
+| L           | request time in decimal seconds       |
+| p           | process ID                            |
+| {header}i   | request header                        |
+| {header}o   | response header                       |
+| {variable}e | environment variable                  |
+
+Use lowercase for header and environment variable names, and put `{...}x` names inside `%(...)s`. For example:
+
+    %({x-forwarded-for}i)s
+
+### `errorlog`
+
+**Command line:** `--error-logfile FILE` or `--log-file FILE`
+
+**Default:** `'-'`
+
+The Error log file to write to.
+
+Using `'-'` for FILE makes gunicorn log to stderr.
+
+<div class="versionchanged">
+
+19.2 Log to stderr by default.
+
+</div>
+
+### `loglevel`
+
+**Command line:** `--log-level LEVEL`
+
+**Default:** `'info'`
+
+The granularity of Error log outputs.
+
+Valid level names are:
+
+  - `'debug'`
+  - `'info'`
+  - `'warning'`
+  - `'error'`
+  - `'critical'`
+
+### `capture_output`
+
+**Command line:** `--capture-output`
+
+**Default:** `False`
+
+Redirect stdout/stderr to specified file in \[errorlog\](\#errorlog).
+
+<div class="versionadded">
+
+19.6
+
+</div>
+
+### `logger_class`
+
+**Command line:** `--logger-class STRING`
+
+**Default:** `'gunicorn.glogging.Logger'`
+
+The logger you want to use to log events in Gunicorn.
+
+The default class (`gunicorn.glogging.Logger`) handles most normal usages in logging. It provides error and access logging.
+
+You can provide your own logger by giving Gunicorn a Python path to a class that quacks like `gunicorn.glogging.Logger`.
+
+### `logconfig`
+
+**Command line:** `--log-config FILE`
+
+**Default:** `None`
+
+The log config file to use. Gunicorn uses the standard Python logging module's Configuration file format.
+
+### `logconfig_dict`
+
+**Default:** `{}`
+
+The log config dictionary to use, using the standard Python logging module's dictionary configuration format. This option takes precedence over the \[logconfig\](\#logconfig) and \[logconfig-json\](\#logconfig-json) options, which uses the older file configuration format and JSON respectively.
+
+Format: <https://docs.python.org/3/library/logging.config.html#logging.config.dictConfig>
+
+For more context you can look at the default configuration dictionary for logging, which can be found at `gunicorn.glogging.CONFIG_DEFAULTS`.
+
+<div class="versionadded">
+
+19.8
+
+</div>
+
+### `logconfig_json`
+
+**Command line:** `--log-config-json FILE`
+
+**Default:** `None`
+
+The log config to read config from a JSON file
+
+Format: <https://docs.python.org/3/library/logging.config.html#logging.config.jsonConfig>
+
+<div class="versionadded">
+
+20.0
+
+</div>
+
+### `syslog_addr`
+
+**Command line:** `--log-syslog-to SYSLOG_ADDR`
+
+**Default:** `'udp://localhost:514'`
+
+Address to send syslog messages.
+
+Address is a string of the form:
+
+  - `unix://PATH#TYPE` : for unix domain socket. `TYPE` can be `stream` for the stream driver or `dgram` for the dgram driver. `stream` is the default.
+  - `udp://HOST:PORT` : for UDP sockets
+  - `tcp://HOST:PORT` : for TCP sockets
+
+### `syslog`
+
+**Command line:** `--log-syslog`
+
+**Default:** `False`
+
+Send *Gunicorn* logs to syslog.
+
+<div class="versionchanged">
+
+19.8 You can now disable sending access logs by using the \[disable-redirect-access-to-syslog\](\#disable-redirect-access-to-syslog) setting.
+
+</div>
+
+### `syslog_prefix`
+
+**Command line:** `--log-syslog-prefix SYSLOG_PREFIX`
+
+**Default:** `None`
+
+Makes Gunicorn use the parameter as program-name in the syslog entries.
+
+All entries will be prefixed by `gunicorn.<prefix>`. By default the program name is the name of the process.
+
+### `syslog_facility`
+
+**Command line:** `--log-syslog-facility SYSLOG_FACILITY`
+
+**Default:** `'user'`
+
+Syslog facility name
+
+### `enable_stdio_inheritance`
+
+**Command line:** `-R` or `--enable-stdio-inheritance`
+
+**Default:** `False`
+
+Enable stdio inheritance.
+
+Enable inheritance for stdio file descriptors in daemon mode.
+
+Note: To disable the Python stdout buffering, you can to set the user environment variable `PYTHONUNBUFFERED` .
+
+### `statsd_host`
+
+**Command line:** `--statsd-host STATSD_ADDR`
+
+**Default:** `None`
+
+The address of the StatsD server to log to.
+
+Address is a string of the form:
+
+  - `unix://PATH` : for a unix domain socket.
+  - `HOST:PORT` : for a network address
+
+<div class="versionadded">
+
+19.1
+
+</div>
+
+### `dogstatsd_tags`
+
+**Command line:** `--dogstatsd-tags DOGSTATSD_TAGS`
+
+**Default:** `''`
+
+A comma-delimited list of datadog statsd (dogstatsd) tags to append to statsd metrics.
+
+<div class="versionadded">
+
+20
+
+</div>
+
+### `statsd_prefix`
+
+**Command line:** `--statsd-prefix STATSD_PREFIX`
+
+**Default:** `''`
+
+Prefix to use when emitting statsd metrics (a trailing `.` is added, if not provided).
+
+<div class="versionadded">
+
+19.2
+
+</div>
+
+## Process Naming
+
+### `proc_name`
+
+**Command line:** `-n STRING` or `--name STRING`
+
+**Default:** `None`
+
+A base to use with setproctitle for process naming.
+
+This affects things like `ps` and `top`. If you're going to be running more than one instance of Gunicorn you'll probably want to set a name to tell them apart. This requires that you install the setproctitle module.
+
+If not set, the *default\_proc\_name* setting will be used.
+
+### `default_proc_name`
+
+**Default:** `'gunicorn'`
+
+Internal setting that is adjusted for each type of application.
+
+## SSL
+
+### `keyfile`
+
+**Command line:** `--keyfile FILE`
+
+**Default:** `None`
+
+SSL key file
+
+### `certfile`
+
+**Command line:** `--certfile FILE`
+
+**Default:** `None`
+
+SSL certificate file
+
+### `ssl_version`
+
+**Command line:** `--ssl-version`
+
+**Default:** `<_SSLMethod.PROTOCOL_TLS: 2>`
+
+SSL version to use (see stdlib ssl module's).
+
+<div class="deprecated">
+
+21.0 The option is deprecated and it is currently ignored. Use \[ssl-context\](\#ssl-context) instead.
+
+</div>
+
+| \--ssl-version | Description                                                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| SSLv3          | SSLv3 is not-secure and is strongly discouraged.                                                                        |
+| SSLv23         | Alias for TLS. Deprecated in Python 3.6, use TLS.                                                                       |
+| TLS            | Negotiate highest possible version between client/server. Can yield SSL. (Python 3.6+)                                  |
+| TLSv1          | TLS 1.0                                                                                                                 |
+| TLSv1\_1       | TLS 1.1 (Python 3.4+)                                                                                                   |
+| TLSv1\_2       | TLS 1.2 (Python 3.4+)                                                                                                   |
+| TLS\_SERVER    | Auto-negotiate the highest protocol version like TLS, but only support server-side SSLSocket connections. (Python 3.6+) |
+
+<div class="versionchanged">
+
+19.7 The default value has been changed from `ssl.PROTOCOL_TLSv1` to `ssl.PROTOCOL_SSLv23`.
+
+</div>
+
+<div class="versionchanged">
+
+20.0 This setting now accepts string names based on `ssl.PROTOCOL_` constants.
+
+</div>
+
+<div class="versionchanged">
+
+20.0.1 The default value has been changed from `ssl.PROTOCOL_SSLv23` to `ssl.PROTOCOL_TLS` when Python \>= 3.6 .
+
+</div>
+
+### `cert_reqs`
+
+**Command line:** `--cert-reqs`
+
+**Default:** `<VerifyMode.CERT_NONE: 0>`
+
+Whether client certificate is required (see stdlib ssl module's)
+
+| \--cert-reqs                     | Description            |
+| -------------------------------- | ---------------------- |
+| <span class="title-ref">0</span> | no client verification |
+| <span class="title-ref">1</span> | ssl.CERT\_OPTIONAL     |
+| <span class="title-ref">2</span> | ssl.CERT\_REQUIRED     |
+
+### `ca_certs`
+
+**Command line:** `--ca-certs FILE`
+
+**Default:** `None`
+
+CA certificates file
+
+### `suppress_ragged_eofs`
+
+**Command line:** `--suppress-ragged-eofs`
+
+**Default:** `True`
+
+Suppress ragged EOFs (see stdlib ssl module's)
+
+### `do_handshake_on_connect`
+
+**Command line:** `--do-handshake-on-connect`
+
+**Default:** `False`
+
+Whether to perform SSL handshake on socket connect (see stdlib ssl module's)
+
+### `ciphers`
+
+**Command line:** `--ciphers`
+
+**Default:** `None`
+
+SSL Cipher suite to use, in the format of an OpenSSL cipher list.
+
+By default we use the default cipher list from Python's `ssl` module, which contains ciphers considered strong at the time of each Python release.
+
+As a recommended alternative, the Open Web App Security Project (OWASP) offers [a vetted set of strong cipher strings rated A+ to C-](https://www.owasp.org/index.php/TLS_Cipher_String_Cheat_Sheet). OWASP provides details on user-agent compatibility at each security level.
+
+See the [OpenSSL Cipher List Format Documentation](https://www.openssl.org/docs/manmaster/man1/ciphers.html#CIPHER-LIST-FORMAT) for details on the format of an OpenSSL cipher list.
+
+## Security
+
+### `limit_request_line`
+
+**Command line:** `--limit-request-line INT`
+
+**Default:** `4094`
+
+The maximum size of HTTP request line in bytes.
+
+This parameter is used to limit the allowed size of a client's HTTP request-line. Since the request-line consists of the HTTP method, URI, and protocol version, this directive places a restriction on the length of a request-URI allowed for a request on the server. A server needs this value to be large enough to hold any of its resource names, including any information that might be passed in the query part of a GET request. Value is a number from 0 (unlimited) to 8190.
+
+This parameter can be used to prevent any DDOS attack.
+
+### `limit_request_fields`
+
+**Command line:** `--limit-request-fields INT`
+
+**Default:** `100`
+
+Limit the number of HTTP headers fields in a request.
+
+This parameter is used to limit the number of headers in a request to prevent DDOS attack. Used with the *limit\_request\_field\_size* it allows more safety. By default this value is 100 and can't be larger than 32768.
+
+### `limit_request_field_size`
+
+**Command line:** `--limit-request-field_size INT`
+
+**Default:** `8190`
+
+Limit the allowed size of an HTTP request header field.
+
+Value is a positive number or 0. Setting it to 0 will allow unlimited header field sizes.
+
+<div class="warning">
+
+<div class="title">
+
+Warning
+
+</div>
+
+Setting this parameter to a very high or unlimited value can open up for DDOS attacks.
+
+</div>
+
+## Server Hooks
+
+### `on_starting`
+
+**Default:**
+
+`` `python         def on_starting(server):             pass  Called just before the master process is initialized.  The callable needs to accept a single instance variable for the Arbiter.  .. _on-reload: ``on\_reload`  `\` \~\~\~\~\~\~\~\~\~\~\~\~\~
+
+**Default:**
+
+`` `python         def on_reload(server):             pass  Called to recycle workers during a reload via SIGHUP.  The callable needs to accept a single instance variable for the Arbiter.  .. _when-ready: ``when\_ready`  `\` \~\~\~\~\~\~\~\~\~\~\~\~\~\~
+
+**Default:**
+
+`` `python         def when_ready(server):             pass  Called just after the server is started.  The callable needs to accept a single instance variable for the Arbiter.  .. _pre-fork: ``pre\_fork`  `\` \~\~\~\~\~\~\~\~\~\~\~\~
+
+**Default:**
+
+`` `python         def pre_fork(server, worker):             pass  Called just before a worker is forked.  The callable needs to accept two instance variables for the Arbiter and ``\` new Worker.
+
+### `post_fork`
+
+**Default:**
+
+`` `python         def post_fork(server, worker):             pass  Called just after a worker has been forked.  The callable needs to accept two instance variables for the Arbiter and ``\` new Worker.
+
+### `post_worker_init`
+
+**Default:**
+
+`` `python         def post_worker_init(worker):             pass  Called just after a worker has initialized the application.  The callable needs to accept one instance variable for the initialized ``\` Worker.
+
+### `worker_int`
+
+**Default:**
+
+`` `python         def worker_int(worker):             pass  Called just after a worker exited on SIGINT or SIGQUIT.  The callable needs to accept one instance variable for the initialized ``\` Worker.
+
+### `worker_abort`
+
+**Default:**
+
+`` `python         def worker_abort(worker):             pass  Called when a worker received the SIGABRT signal.  This call generally happens on timeout.  The callable needs to accept one instance variable for the initialized ``\` Worker.
+
+### `pre_exec`
+
+**Default:**
+
+`` `python         def pre_exec(server):             pass  Called just before a new master process is forked.  The callable needs to accept a single instance variable for the Arbiter.  .. _pre-request: ``pre\_request`  `\` \~\~\~\~\~\~\~\~\~\~\~\~\~\~\~
+
+**Default:**
+
+`` `python         def pre_request(worker, req):             worker.log.debug("%s %s", req.method, req.path)  Called just before a worker processes the request.  The callable needs to accept two instance variables for the Worker and ``\` the Request.
+
+### `post_request`
+
+**Default:**
+
+`` `python         def post_request(worker, req, environ, resp):             pass  Called after a worker processes the request.  The callable needs to accept two instance variables for the Worker and ``\` the Request.
+
+### `child_exit`
+
+**Default:**
+
+`` `python         def child_exit(server, worker):             pass  Called just after a worker has been exited, in the master process.  The callable needs to accept two instance variables for the Arbiter and ``\` the just-exited Worker.
+
+<div class="versionadded">
+
+19.7
+
+</div>
+
+### `worker_exit`
+
+**Default:**
+
+`` `python         def worker_exit(server, worker):             pass  Called just after a worker has been exited, in the worker process.  The callable needs to accept two instance variables for the Arbiter and ``\` the just-exited Worker.
+
+### `nworkers_changed`
+
+**Default:**
+
+`` `python         def nworkers_changed(server, new_value, old_value):             pass  Called just after *num_workers* has been changed.  The callable needs to accept an instance variable of the Arbiter and ``\` two integers of number of workers after and before change.
+
+If the number of workers is set for the first time, *old\_value* would be `None`.
+
+### `on_exit`
+
+**Default:**
+
+`` `python         def on_exit(server):             pass  Called just before exiting Gunicorn.  The callable needs to accept a single instance variable for the Arbiter.  .. _ssl-context: ``ssl\_context`  `\` \~\~\~\~\~\~\~\~\~\~\~\~\~\~\~
+
+**Default:**
+
+`` `python         def ssl_context(config, default_ssl_context_factory):             return default_ssl_context_factory()  Called when SSLContext is needed.  Allows customizing SSL context.  The callable needs to accept an instance variable for the Config and ``\` a factory function that returns default SSLContext which is initialized with certificates, private key, cert\_reqs, and ciphers according to config and can be further customized by the callable. The callable needs to return SSLContext object.
+
+Following example shows a configuration file that sets the minimum TLS version to 1.3:
+
+`` `python     def ssl_context(conf, default_ssl_context_factory):         import ssl         context = default_ssl_context_factory()         context.minimum_version = ssl.TLSVersion.TLSv1_3         return context  .. versionadded:: 21.0  Server Mechanics ``\` ----------------
+
+### `preload_app`
+
+**Command line:** `--preload`
+
+**Default:** `False`
+
+Load application code before the worker processes are forked.
+
+By preloading an application you can save some RAM resources as well as speed up server boot times. Although, if you defer application loading to each worker process, you can reload your application code easily by restarting workers.
+
+### `sendfile`
+
+**Command line:** `--no-sendfile`
+
+**Default:** `None`
+
+Disables the use of `sendfile()`.
+
+If not set, the value of the `SENDFILE` environment variable is used to enable or disable its usage.
+
+<div class="versionadded">
+
+19.2
+
+</div>
+
+<div class="versionchanged">
+
+19.4 Swapped `--sendfile` with `--no-sendfile` to actually allow disabling.
+
+</div>
+
+<div class="versionchanged">
+
+19.6 added support for the `SENDFILE` environment variable
+
+</div>
+
+### `reuse_port`
+
+**Command line:** `--reuse-port`
+
+**Default:** `False`
+
+Set the `SO_REUSEPORT` flag on the listening socket.
+
+<div class="versionadded">
+
+19.8
+
+</div>
+
+### `chdir`
+
+**Command line:** `--chdir`
+
+**Default:** `'.'`
+
+Change directory to specified directory before loading apps.
+
+### `daemon`
+
+**Command line:** `-D` or `--daemon`
+
+**Default:** `False`
+
+Daemonize the Gunicorn process.
+
+Detaches the server from the controlling terminal and enters the background.
+
+### `raw_env`
+
+**Command line:** `-e ENV` or `--env ENV`
+
+**Default:** `[]`
+
+Set environment variables in the execution environment.
+
+Should be a list of strings in the `key=value` format.
+
+For example on the command line:
+
+`` `console     $ gunicorn -b 127.0.0.1:8000 --env FOO=1 test:app  Or in the configuration file:  .. code-block:: python      raw_env = ["FOO=1"]  .. _pidfile: ``pidfile`  `\` \~\~\~\~\~\~\~\~\~\~\~
+
+**Command line:** `-p FILE` or `--pid FILE`
+
+**Default:** `None`
+
+A filename to use for the PID file.
+
+If not set, no PID file will be written.
+
+### `worker_tmp_dir`
+
+**Command line:** `--worker-tmp-dir DIR`
+
+**Default:** `None`
+
+A directory to use for the worker heartbeat temporary file.
+
+If not set, the default temporary directory will be used.
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+The current heartbeat system involves calling `os.fchmod` on temporary file handlers and may block a worker for arbitrary time if the directory is on a disk-backed filesystem.
+
+See \[blocking-os-fchmod\](\#blocking-os-fchmod) for more detailed information and a solution for avoiding this problem.
+
+</div>
+
+### `user`
+
+**Command line:** `-u USER` or `--user USER`
+
+**Default:** `os.geteuid()`
+
+Switch worker processes to run as this user.
+
+A valid user id (as an integer) or the name of a user that can be retrieved with a call to `pwd.getpwnam(value)` or `None` to not change the worker process user.
+
+### `group`
+
+**Command line:** `-g GROUP` or `--group GROUP`
+
+**Default:** `os.getegid()`
+
+Switch worker process to run as this group.
+
+A valid group id (as an integer) or the name of a user that can be retrieved with a call to `pwd.getgrnam(value)` or `None` to not change the worker processes group.
+
+### `umask`
+
+**Command line:** `-m INT` or `--umask INT`
+
+**Default:** `0`
+
+A bit mask for the file mode on files written by Gunicorn.
+
+Note that this affects unix socket permissions.
+
+A valid value for the `os.umask(mode)` call or a string compatible with `int(value, 0)` (`0` means Python guesses the base, so values like `0`, `0xFF`, `0022` are valid for decimal, hex, and octal representations)
+
+### `initgroups`
+
+**Command line:** `--initgroups`
+
+**Default:** `False`
+
+If true, set the worker process's group access list with all of the groups of which the specified username is a member, plus the specified group id.
+
+<div class="versionadded">
+
+19.7
+
+</div>
+
+### `tmp_upload_dir`
+
+**Default:** `None`
+
+Directory to store temporary request data as they are read.
+
+This may disappear in the near future.
+
+This path should be writable by the process permissions set for Gunicorn workers. If not specified, Gunicorn will choose a system generated temporary directory.
+
+### `secure_scheme_headers`
+
+**Default:** `{'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}`
+
+A dictionary containing headers and values that the front-end proxy uses to indicate HTTPS requests. If the source IP is permitted by \[forwarded-allow-ips\](\#forwarded-allow-ips) (below), *and* at least one request header matches a key-value pair listed in this dictionary, then Gunicorn will set `wsgi.url_scheme` to `https`, so your application can tell that the request is secure.
+
+If the other headers listed in this dictionary are not present in the request, they will be ignored, but if the other headers are present and do not match the provided values, then the request will fail to parse. See the note below for more detailed examples of this behaviour.
+
+The dictionary should map upper-case header names to exact string values. The value comparisons are case-sensitive, unlike the header names, so make sure they're exactly what your front-end proxy sends when handling HTTPS requests.
+
+It is important that your front-end proxy configuration ensures that the headers defined here can not be passed directly from the client.
+
+### `forwarded_allow_ips`
+
+**Command line:** `--forwarded-allow-ips STRING`
+
+**Default:** `'127.0.0.1,::1'`
+
+Front-end's IPs from which allowed to handle set secure headers. (comma separated).
+
+Set to `*` to disable checking of front-end IPs. This is useful for setups where you don't know in advance the IP address of front-end, but instead have ensured via other means that only your authorized front-ends can access Gunicorn.
+
+By default, the value of the `FORWARDED_ALLOW_IPS` environment variable. If it is not defined, the default is `"127.0.0.1,::1"`.
+
+\> **Note** \> This option does not affect UNIX socket connections. Connections not associated with an IP address are treated as allowed, unconditionally.
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+The interplay between the request headers, the value of `forwarded_allow_ips`, and the value of `secure_scheme_headers` is complex. Various scenarios are documented below to further elaborate. In each case, we have a request from the remote address 134.213.44.18, and the default value of `secure_scheme_headers`:
+
+    secure_scheme_headers = {
+        'X-FORWARDED-PROTOCOL': 'ssl',
+        'X-FORWARDED-PROTO': 'https',
+        'X-FORWARDED-SSL': 'on'
+    }
+
+<table>
+<thead>
+<tr class="header">
+<th><code>forwarded-allow-ips</code></th>
+<th>Secure Request Headers</th>
+<th>Result</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><pre class=""><code>[&quot;127.0.0.1&quot;]</code></pre></td>
+<td><pre class=""><code>X-Forwarded-Proto: https</code></pre></td>
+<td><pre class=""><code>wsgi.url_scheme = &quot;http&quot;</code></pre></td>
+<td>IP address was not allowed</td>
+</tr>
+<tr class="even">
+<td><pre class=""><code>&quot;*&quot;</code></pre></td>
+<td>&lt;none&gt;</td>
+<td><pre class=""><code>wsgi.url_scheme = &quot;http&quot;</code></pre></td>
+<td>IP address allowed, but no secure headers provided</td>
+</tr>
+<tr class="odd">
+<td><pre class=""><code>&quot;*&quot;</code></pre></td>
+<td><pre class=""><code>X-Forwarded-Proto: https</code></pre></td>
+<td><pre class=""><code>wsgi.url_scheme = &quot;https&quot;</code></pre></td>
+<td>IP address allowed, one request header matched</td>
+</tr>
+<tr class="even">
+<td><pre class=""><code>[&quot;134.213.44.18&quot;]</code></pre></td>
+<td><pre class=""><code>X-Forwarded-Ssl: on
+X-Forwarded-Proto: http</code></pre></td>
+<td><code>InvalidSchemeHeaders()</code> raised</td>
+<td>IP address allowed, but the two secure headers disagreed on if HTTPS was used</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+
+### `pythonpath`
+
+**Command line:** `--pythonpath STRING`
+
+**Default:** `None`
+
+A comma-separated list of directories to add to the Python path.
+
+e.g. `'/home/djangoprojects/myproject,/home/python/mylibrary'`.
+
+### `paste`
+
+**Command line:** `--paste STRING` or `--paster STRING`
+
+**Default:** `None`
+
+Load a PasteDeploy config file. The argument may contain a `#` symbol followed by the name of an app section from the config file, e.g. `production.ini#admin`.
+
+At this time, using alternate server blocks is not supported. Use the command line arguments to control server configuration instead.
+
+### `proxy_protocol`
+
+**Command line:** `--proxy-protocol`
+
+**Default:** `False`
+
+Enable detect PROXY protocol (PROXY mode).
+
+Allow using HTTP and Proxy together. It may be useful for work with stunnel as HTTPS frontend and Gunicorn as HTTP server.
+
+PROXY protocol: <http://haproxy.1wt.eu/download/1.5/doc/proxy-protocol.txt>
+
+Example for stunnel config:
+
+    [https]
+    protocol = proxy
+    accept  = 443
+    connect = 80
+    cert = /etc/ssl/certs/stunnel.pem
+    key = /etc/ssl/certs/stunnel.key
+
+### `proxy_allow_ips`
+
+**Command line:** `--proxy-allow-from`
+
+**Default:** `'127.0.0.1,::1'`
+
+Front-end's IPs from which allowed accept proxy requests (comma separated).
+
+Set to `*` to disable checking of front-end IPs. This is useful for setups where you don't know in advance the IP address of front-end, but instead have ensured via other means that only your authorized front-ends can access Gunicorn.
+
+\> **Note** \> This option does not affect UNIX socket connections. Connections not associated with an IP address are treated as allowed, unconditionally.
+
+### `raw_paste_global_conf`
+
+**Command line:** `--paste-global CONF`
+
+**Default:** `[]`
+
+Set a PasteDeploy global config variable in `key=value` form.
+
+The option can be specified multiple times.
+
+The variables are passed to the PasteDeploy entrypoint. Example:
+
+    $ gunicorn -b 127.0.0.1:8000 --paste development.ini --paste-global FOO=1 --paste-global BAR=2
+
+<div class="versionadded">
+
+19.7
+
+</div>
+
+### `permit_obsolete_folding`
+
+**Command line:** `--permit-obsolete-folding`
+
+**Default:** `False`
+
+Permit requests employing obsolete HTTP line folding mechanism
+
+  - The folding mechanism was deprecated by rfc7230 Section 3.2.4 and will not be  
+    employed in HTTP request headers from standards-compliant HTTP clients.
+
+This option is provided to diagnose backwards-incompatible changes. Use with care and only if necessary. Temporary; the precise effect of this option may change in a future version, or it may be removed altogether.
+
+<div class="versionadded">
+
+23.0.0
+
+</div>
+
+### `strip_header_spaces`
+
+**Command line:** `--strip-header-spaces`
+
+**Default:** `False`
+
+Strip spaces present between the header name and the the `:`.
+
+This is known to induce vulnerabilities and is not compliant with the HTTP/1.1 standard. See <https://portswigger.net/research/http-desync-attacks-request-smuggling-reborn>.
+
+Use with care and only if necessary. Deprecated; scheduled for removal in 25.0.0
+
+<div class="versionadded">
+
+20.0.1
+
+</div>
+
+### `permit_unconventional_http_method`
+
+**Command line:** `--permit-unconventional-http-method`
+
+**Default:** `False`
+
+Permit HTTP methods not matching conventions, such as IANA registration guidelines
+
+This permits request methods of length less than 3 or more than 20, methods with lowercase characters or methods containing the \# character. HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+If unset, Gunicorn will apply nonstandard restrictions and cause 400 response status in cases where otherwise 501 status is expected. While this option does modify that behaviour, it should not be depended upon to guarantee standards-compliant behaviour. Rather, it is provided temporarily, to assist in diagnosing backwards-incompatible changes around the incomplete application of those restrictions.
+
+Use with care and only if necessary. Temporary; scheduled for removal in 24.0.0
+
+<div class="versionadded">
+
+22.0.0
+
+</div>
+
+### `permit_unconventional_http_version`
+
+**Command line:** `--permit-unconventional-http-version`
+
+**Default:** `False`
+
+Permit HTTP version not matching conventions of 2023
+
+This disables the refusal of likely malformed request lines. It is unusual to specify HTTP 1 versions other than 1.0 and 1.1.
+
+This option is provided to diagnose backwards-incompatible changes. Use with care and only if necessary. Temporary; the precise effect of this option may change in a future version, or it may be removed altogether.
+
+<div class="versionadded">
+
+22.0.0
+
+</div>
+
+### `casefold_http_method`
+
+**Command line:** `--casefold-http-method`
+
+**Default:** `False`
+
+Transform received HTTP methods to uppercase
+
+HTTP methods are case sensitive by definition, and merely uppercase by convention.
+
+This option is provided because previous versions of gunicorn defaulted to this behaviour.
+
+Use with care and only if necessary. Deprecated; scheduled for removal in 24.0.0
+
+<div class="versionadded">
+
+22.0.0
+
+</div>
+
+### `forwarder_headers`
+
+**Command line:** `--forwarder-headers`
+
+**Default:** `'SCRIPT_NAME,PATH_INFO'`
+
+A list containing upper-case header field names that the front-end proxy (see \[forwarded-allow-ips\](\#forwarded-allow-ips)) sets, to be used in WSGI environment.
+
+This option has no effect for headers not present in the request.
+
+This option can be used to transfer `SCRIPT_NAME`, `PATH_INFO` and `REMOTE_USER`.
+
+It is important that your front-end proxy configuration ensures that the headers defined here can not be passed directly from the client.
+
+### `header_map`
+
+**Command line:** `--header-map`
+
+**Default:** `'drop'`
+
+Configure how header field names are mapped into environ
+
+Headers containing underscores are permitted by RFC9110, but gunicorn joining headers of different names into the same environment variable will dangerously confuse applications as to which is which.
+
+The safe default `drop` is to silently drop headers that cannot be unambiguously mapped. The value `refuse` will return an error if a request contains *any* such header. The value `dangerous` matches the previous, not advisable, behaviour of mapping different header field names into the same environ name.
+
+If the source is permitted as explained in \[forwarded-allow-ips\](\#forwarded-allow-ips), *and* the header name is present in \[forwarder-headers\](\#forwarder-headers), the header is mapped into environment regardless of the state of this setting.
+
+Use with care and only if necessary and after considering if your problem could instead be solved by specifically renaming or rewriting only the intended headers on a proxy in front of Gunicorn.
+
+<div class="versionadded">
+
+22.0.0
+
+</div>
+
+## Server Socket
+
+### `bind`
+
+**Command line:** `-b ADDRESS` or `--bind ADDRESS`
+
+**Default:** `['127.0.0.1:8000']`
+
+The socket to bind.
+
+A string of the form: `HOST`, `HOST:PORT`, `unix:PATH`, `fd://FD`. An IP is a valid `HOST`.
+
+<div class="versionchanged">
+
+20.0 Support for `fd://FD` got added.
+
+</div>
+
+Multiple addresses can be bound. ex.:
+
+    $ gunicorn -b 127.0.0.1:8000 -b [::1]:8000 test:app
+
+will bind the <span class="title-ref">test:app</span> application on localhost both on ipv6 and ipv4 interfaces.
+
+If the `PORT` environment variable is defined, the default is `['0.0.0.0:$PORT']`. If it is not defined, the default is `['127.0.0.1:8000']`.
+
+### `backlog`
+
+**Command line:** `--backlog INT`
+
+**Default:** `2048`
+
+The maximum number of pending connections.
+
+This refers to the number of clients that can be waiting to be served. Exceeding this number results in the client getting an error when attempting to connect. It should only affect servers under significant load.
+
+Must be a positive integer. Generally set in the 64-2048 range.
+
+## Worker Processes
+
+### `workers`
+
+**Command line:** `-w INT` or `--workers INT`
+
+**Default:** `1`
+
+The number of worker processes for handling requests.
+
+A positive integer generally in the `2-4 x $(NUM_CORES)` range. You'll want to vary this a bit to find the best for your particular application's work load.
+
+By default, the value of the `WEB_CONCURRENCY` environment variable, which is set by some Platform-as-a-Service providers such as Heroku. If it is not defined, the default is `1`.
+
+### `worker_class`
+
+**Command line:** `-k STRING` or `--worker-class STRING`
+
+**Default:** `'sync'`
+
+The type of workers to use.
+
+The default class (`sync`) should handle most "normal" types of workloads. You'll want to read \[design\](design.md) for information on when you might want to choose one of the other worker classes. Required libraries may be installed using setuptools' `extras_require` feature.
+
+A string referring to one of the following bundled classes:
+
+  - `sync`
+  - `eventlet` - Requires eventlet \>= 0.24.1 (or install it via `pip install gunicorn[eventlet]`)
+  - `gevent` - Requires gevent \>= 1.4 (or install it via `pip install gunicorn[gevent]`)
+  - `tornado` - Requires tornado \>= 0.2 (or install it via `pip install gunicorn[tornado]`)
+  - `gthread` - Python 2 requires the futures package to be installed (or install it via `pip install gunicorn[gthread]`)
+
+Optionally, you can provide your own worker by giving Gunicorn a Python path to a subclass of `gunicorn.workers.base.Worker`. This alternative syntax will load the gevent class: `gunicorn.workers.ggevent.GeventWorker`.
+
+### `threads`
+
+**Command line:** `--threads INT`
+
+**Default:** `1`
+
+The number of worker threads for handling requests.
+
+Run each worker with the specified number of threads.
+
+A positive integer generally in the `2-4 x $(NUM_CORES)` range. You'll want to vary this a bit to find the best for your particular application's work load.
+
+If it is not defined, the default is `1`.
+
+This setting only affects the Gthread worker type.
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+If you try to use the `sync` worker type and set the `threads` setting to more than 1, the `gthread` worker type will be used instead.
+
+</div>
+
+### `worker_connections`
+
+**Command line:** `--worker-connections INT`
+
+**Default:** `1000`
+
+The maximum number of simultaneous clients.
+
+This setting only affects the `gthread`, `eventlet` and `gevent` worker types.
+
+### `max_requests`
+
+**Command line:** `--max-requests INT`
+
+**Default:** `0`
+
+The maximum number of requests a worker will process before restarting.
+
+Any value greater than zero will limit the number of requests a worker will process before automatically restarting. This is a simple method to help limit the damage of memory leaks.
+
+If this is set to zero (the default) then the automatic worker restarts are disabled.
+
+### `max_requests_jitter`
+
+**Command line:** `--max-requests-jitter INT`
+
+**Default:** `0`
+
+The maximum jitter to add to the *max\_requests* setting.
+
+The jitter causes the restart per worker to be randomized by `randint(0, max_requests_jitter)`. This is intended to stagger worker restarts to avoid all workers restarting at the same time.
+
+<div class="versionadded">
+
+19.2
+
+</div>
+
+### `timeout`
+
+**Command line:** `-t INT` or `--timeout INT`
+
+**Default:** `30`
+
+Workers silent for more than this many seconds are killed and restarted.
+
+Value is a positive number or 0. Setting it to 0 has the effect of infinite timeouts by disabling timeouts for all workers entirely.
+
+Generally, the default of thirty seconds should suffice. Only set this noticeably higher if you're sure of the repercussions for sync workers. For the non sync workers it just means that the worker process is still communicating and is not tied to the length of time required to handle a single request.
+
+### `graceful_timeout`
+
+**Command line:** `--graceful-timeout INT`
+
+**Default:** `30`
+
+Timeout for graceful workers restart.
+
+After receiving a restart signal, workers have this much time to finish serving requests. Workers still alive after the timeout (starting from the receipt of the restart signal) are force killed.
+
+### `keepalive`
+
+**Command line:** `--keep-alive INT`
+
+**Default:** `2`
+
+The number of seconds to wait for requests on a Keep-Alive connection.
+
+Generally set in the 1-5 seconds range for servers with direct connection to the client (e.g. when you don't have separate load balancer). When Gunicorn is deployed behind a load balancer, it often makes sense to set this to a higher value.
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+`sync` worker does not support persistent connections and will ignore this option.
+
+</div>
+
+---
+
+signals.md
+
+---
+
+# Signal Handling
+
+A brief description of the signals handled by Gunicorn. We also document the signals used internally by Gunicorn to communicate with the workers.
+
+## Master process
+
+  - `QUIT`, `INT`: Quick shutdown
+  - `TERM`: Graceful shutdown. Waits for workers to finish their current requests up to the \[graceful-timeout\](\#graceful-timeout).
+  - `HUP`: Reload the configuration, start the new worker processes with a new configuration and gracefully shutdown older workers. If the application is not preloaded (using the \[preload-app\](\#preload-app) option), Gunicorn will also load the new version of it.
+  - `TTIN`: Increment the number of processes by one
+  - `TTOU`: Decrement the number of processes by one
+  - `USR1`: Reopen the log files
+  - `USR2`: Upgrade Gunicorn on the fly. A separate `TERM` signal should be used to kill the old master process. This signal can also be used to use the new versions of pre-loaded applications. See \[binary-upgrade\](\#binary-upgrade) for more information.
+  - `WINCH`: Gracefully shutdown the worker processes when Gunicorn is daemonized.
+
+## Worker process
+
+Sending signals directly to the worker processes should not normally be needed. If the master process is running, any exited worker will be automatically respawned.
+
+  - `QUIT`, `INT`: Quick shutdown
+  - `TERM`: Graceful shutdown
+  - `USR1`: Reopen the log files
+
+## Reload the configuration
+
+The `HUP` signal can be used to reload the Gunicorn configuration on the fly.
+
+    2013-06-29 06:26:55 [20682] [INFO] Handling signal: hup
+    2013-06-29 06:26:55 [20682] [INFO] Hang up: Master
+    2013-06-29 06:26:55 [20703] [INFO] Booting worker with pid: 20703
+    2013-06-29 06:26:55 [20702] [INFO] Booting worker with pid: 20702
+    2013-06-29 06:26:55 [20688] [INFO] Worker exiting (pid: 20688)
+    2013-06-29 06:26:55 [20687] [INFO] Worker exiting (pid: 20687)
+    2013-06-29 06:26:55 [20689] [INFO] Worker exiting (pid: 20689)
+    2013-06-29 06:26:55 [20704] [INFO] Booting worker with pid: 20704
+
+Sending a `HUP` signal will reload the configuration, start the new worker processes with a new configuration and gracefully shutdown older workers. If the application is not preloaded (using the \[preload-app\](\#preload-app) option), Gunicorn will also load the new version of it.
+
+## Upgrading to a new binary on the fly
+
+<div class="versionchanged">
+
+19.6.0 PID file naming format has been changed from `<name>.pid.oldbin` to `<name>.pid.2`.
+
+</div>
+
+If you need to replace the Gunicorn binary with a new one (when upgrading to a new version or adding/removing server modules), you can do it without any service downtime - no incoming requests will be lost. Preloaded applications will also be reloaded.
+
+First, replace the old binary with a new one, then send a `USR2` signal to the current master process. It executes a new binary whose PID file is postfixed with `.2` (e.g. `/var/run/gunicorn.pid.2`), which in turn starts a new master process and new worker processes:
+
+    PID USER      PR  NI  VIRT  RES  SHR S  %CPU %MEM    TIME+  COMMAND
+    20844 benoitc   20   0 54808  11m 3352 S   0.0  0.1   0:00.36 gunicorn: master [test:app]
+    20849 benoitc   20   0 54808 9.9m 1500 S   0.0  0.1   0:00.02 gunicorn: worker [test:app]
+    20850 benoitc   20   0 54808 9.9m 1500 S   0.0  0.1   0:00.01 gunicorn: worker [test:app]
+    20851 benoitc   20   0 54808 9.9m 1500 S   0.0  0.1   0:00.01 gunicorn: worker [test:app]
+    20854 benoitc   20   0 55748  12m 3348 S   0.0  0.2   0:00.35 gunicorn: master [test:app]
+    20859 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.01 gunicorn: worker [test:app]
+    20860 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.00 gunicorn: worker [test:app]
+    20861 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.01 gunicorn: worker [test:app]
+
+At this point, two instances of Gunicorn are running, handling the incoming requests together. To phase the old instance out, you have to send a `WINCH` signal to the old master process, and its worker processes will start to gracefully shut down.
+
+At this point you can still revert to the old process since it hasn't closed its listen sockets yet, by following these steps:
+
+  - Send a `HUP` signal to the old master process - it will start the worker processes without reloading a configuration file
+  - Send a `TERM` signal to the new master process to gracefully shut down its worker processes
+  - Send a `QUIT` signal to the new master process to force it quit
+
+If for some reason the new worker processes do not quit, send a `KILL` signal to them after the new master process quits, and everything will back to exactly as before the upgrade attempt.
+
+If the update is successful and you want to keep the new master process, send a `TERM` signal to the old master process to leave only the new server running:
+
+    PID USER      PR  NI  VIRT  RES  SHR S  %CPU %MEM    TIME+  COMMAND
+    20854 benoitc   20   0 55748  12m 3348 S   0.0  0.2   0:00.45 gunicorn: master [test:app]
+    20859 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.02 gunicorn: worker [test:app]
+    20860 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.02 gunicorn: worker [test:app]
+    20861 benoitc   20   0 55748  11m 1500 S   0.0  0.1   0:00.01 gunicorn: worker [test:app]
+
+---
+
+CONTRIBUTING.md
+
+---
+
+# Contributing to Gunicorn
+
+Want to hack on Gunicorn? Awesome! Here are instructions to get you
+started. They are probably not perfect, please let us know if anything
+feels wrong or incomplete.
+
+## Contribution guidelines
+
+### Pull requests are always welcome
+
+We are always thrilled to receive pull requests, and do our best to
+process them as fast as possible. Not sure if that typo is worth a pull
+request? Do it! We will appreciate it.
+
+If your pull request is not accepted on the first try, don't be
+discouraged! If there's a problem with the implementation, hopefully you
+received feedback on what to improve.
+
+We're trying very hard to keep Gunicorn lean and focused. We don't want it
+to do everything for everybody. This means that we might decide against
+incorporating a new feature. However, there might be a way to implement
+that feature *on top of* Gunicorn.
+
+### Discuss your design on the mailing list
+
+We recommend discussing your plans [on the mailing
+list](http://gunicorn.org/#community) before starting to code -
+especially for more ambitious contributions.  This gives other
+contributors a chance to point you in the right direction, give feedback
+on your design, and maybe point out if someone else is working on the
+same thing.
+
+### Create issues...
+
+Any significant improvement should be documented as [a github
+issue](https://github.com/benoitc/gunicorn/issues) before anybody starts
+working on it.
+
+### ...but check for existing issues first!
+
+Please take a moment to check that an issue doesn't already exist
+documenting your bug report or improvement proposal. If it does, it
+never hurts to add a quick "+1" or "I have this problem too". This will
+help prioritize the most common problems and requests.
+
+
+### Conventions
+
+Don't comment on closed issues or PRs, instead open a new issue and link it to
+the old one.
+
+Fork the repo and make changes on your fork in a feature branch:
+
+- If it's a bugfix branch, name it XXX-something where XXX is the number
+  of the issue
+- If it's a feature branch, create an enhancement issue to announce your
+  intentions, and name it XXX-something where XXX is the number of the
+issue.
+
+Submit unit tests for your changes. Python has a great test framework built
+in; use it! Take a look at existing tests for inspiration. Run the full
+test suite on your branch before submitting a pull request.
+
+Make sure you include relevant updates or additions to documentation
+when creating or modifying features.
+
+If you are adding a new configuration option or updating an existing one,
+please do it in `gunicorn/config.py`, then run `make -C docs html` to update
+`docs/source/settings.rst`.
+
+Write clean code.
+
+Pull requests descriptions should be as clear as possible and include a
+reference to all the issues that they address.
+
+Code review comments may be added to your pull request. Discuss, then
+make the suggested modifications and push additional commits to your
+feature branch. Be sure to post a comment after pushing. The new commits
+will show up in the pull request automatically, but the reviewers will
+not be notified unless you comment.
+
+Before the pull request is merged, make sure that you squash your
+commits into logical units of work using `git rebase -i` and `git push
+-f`. After every commit the test suite should be passing. Include
+documentation changes in the same commit so that a revert would remove
+all traces of the feature or fix.
+
+Commits that fix or close an issue should include a reference like
+`Closes #XXX` or `Fixes #XXX`, which will automatically close the issue
+when merged.
+
+Add your name to the THANKS file, but make sure the list is sorted and
+your name and email address match your git configuration. The THANKS
+file is regenerated occasionally from the git commit history, so a
+mismatch may result in your changes being overwritten.
+
+
+## Decision process
+
+### How are decisions made?
+
+Short answer: with pull requests to the gunicorn repository.
+
+Gunicorn is an open-source project under the MIT License with an open
+design philosophy. This means that the repository is the source of truth
+for EVERY aspect of the project, including its philosophy, design,
+roadmap and APIs. *If it's part of the project, it's in the repo. It's
+in the repo, it's part of the project.*
+
+As a result, all decisions can be expressed as changes to the
+repository. An implementation change is a change to the source code. An
+API change is a change to the API specification. A philosophy change is
+a change to the relevant documentation. And so on.
+
+All decisions affecting gunicorn, big and small, follow the same 3 steps:
+
+* Step 1: Open a pull request. Anyone can do this.
+
+* Step 2: Discuss the pull request. Anyone can do this.
+
+* Step 3: Accept or refuse a pull request. The relevant maintainer does this (see below "Who decides what?")
+
+
+### Who decides what?
+
+So all decisions are pull requests, and the relevant maintainer makes
+the decision by accepting or refusing the pull request.  But how do we
+identify the relevant maintainer for a given pull request?
+
+Gunicorn follows the timeless, highly efficient and totally unfair system
+known as [Benevolent dictator for
+life](http://en.wikipedia.org/wiki/Benevolent_Dictator_for_Life), with
+Benoit Chesneau (aka benoitc), in the role of BDFL.  This means that all
+decisions are made by default by me. Since making every decision myself
+would be highly unscalable, in practice decisions are spread across
+multiple maintainers.
+
+The relevant maintainer for a pull request is assigned in 3 steps:
+
+* Step 1: Determine the subdirectory affected by the pull request. This might be src/registry, docs/source/api, or any other part of the repo.
+
+* Step 2: Find the MAINTAINERS file which affects this directory. If the directory itself does not have a MAINTAINERS file, work your way up the repo hierarchy until you find one.
+
+* Step 3: The first maintainer listed is the primary maintainer who is assigned the Pull Request. The primary maintainer can reassign a Pull Request to other listed maintainers.
+
+
+### I'm a maintainer, should I make pull requests too?
+
+Primary maintainers are not required to create pull requests when
+changing their own subdirectory, but secondary maintainers are.
+
+### Who assigns maintainers?
+
+benoitc.
+
+### How can I become a maintainer?
+
+* Step 1: learn the component inside out
+* Step 2: make yourself useful by contributing code, bugfixes, support etc.
+* Step 3: volunteer on the irc channel (#gunicorn@freenode)
+
+Don't forget: being a maintainer is a time investment. Make sure you
+will have time to make yourself available.  You don't have to be a
+maintainer to make a difference on the project!
+
+### What are a maintainer's responsibility?
+
+It is every maintainer's responsibility to:
+
+* 1) Expose a clear roadmap for improving their component.
+* 2) Deliver prompt feedback and decisions on pull requests.
+* 3) Be available to anyone with questions, bug reports, criticism etc. on their component. This includes irc, github requests and the mailing list.
+* 4) Make sure their component respects the philosophy, design and roadmap of the project.
+
+### How is this process changed?
+
+Just like everything else: by making a pull request :)
+
+
+---
+
+README.rst
+
+---
+
+Gunicorn
+========
+
+[![PyPI version](https://img.shields.io/pypi/v/gunicorn.svg?style=flat)](https://pypi.python.org/pypi/gunicorn)
+
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/gunicorn.svg)](https://pypi.python.org/pypi/gunicorn)
+
+[![Build Status](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml/badge.svg)](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml)
+
+[![Lint Status](https://github.com/benoitc/gunicorn/actions/workflows/lint.yml/badge.svg)](https://github.com/benoitc/gunicorn/actions/workflows/lint.yml)
+
+Gunicorn \'Green Unicorn\' is a Python WSGI HTTP Server for UNIX. It\'s a pre-fork worker model ported from Ruby\'s [Unicorn](https://bogomips.org/unicorn/) project. The Gunicorn server is broadly compatible with various web frameworks, simply implemented, light on server resource usage, and fairly speedy.
+
+Feel free to join us in [\#gunicorn](https://web.libera.chat/?channels=#gunicorn) on [Libera.chat](https://libera.chat/).
+
+Documentation
+=============
+
+The documentation is hosted at <https://docs.gunicorn.org>.
+
+Installation
+============
+
+Gunicorn requires **Python 3.x \>= 3.7**.
+
+Install from PyPI:
+
+    $ pip install gunicorn
+
+Usage
+=====
+
+Basic usage:
+
+    $ gunicorn [OPTIONS] APP_MODULE
+
+Where `APP_MODULE` is of the pattern `$(MODULE_NAME):$(VARIABLE_NAME)`. The module name can be a full dotted path. The variable name refers to a WSGI callable that should be found in the specified module.
+
+Example with test app:
+
+    $ cd examples
+    $ gunicorn --workers=2 test:app
+
+Contributing
+============
+
+See [our complete contributor\'s guide](CONTRIBUTING.md) for more details.
+
+License
+=======
+
+Gunicorn is released under the MIT License. See the [LICENSE](https://github.com/benoitc/gunicorn/blob/master/LICENSE) file for more details.
+
+
+---
+
+SECURITY.md
+
+---
+
+# Security Policy
+
+## Reporting a Vulnerability
+
+**Please note that public Github issues are open for everyone to see!**
+
+If you believe you are found a problem in Gunicorn software, examples or documentation, we encourage you to send your
+ report privately via [email](mailto:security@gunicorn.org?subject=Security%20issue%20in%20Gunicorn), or via Github
+ using the *Report a vulnerability* button in the [Security](https://github.com/benoitc/gunicorn/security) section.
+
+## Supported Releases
+
+At this time, **only the latest release** receives any security attention whatsoever.
+
+Please target reports against :white_check_mark: or current master. Please understand that :x: will
+ not receive further security attention.
+
+| Version | Status          |
+| ------- | ------------------ |
+| 23.0.0  | :white_check_mark: |
+| 22.0.0  | :x: |
+| 21.2.0  | :x: |
+| 20.0.0  | :x: |
+| < 20.0  | :x: |
+
+## Python Versions
+
+Gunicorn runs on Python 3.7+, we *highly recommend* the latest release of a 
+[supported series](https://devguide.python.org/versions/) and will not prioritize issues exclusively 
+affecting in EoL environments.
+
+
+---
+
+requirements_dev.txt
+
+---
+
+-r requirements_test.txt
+
+# setuptools v68.0 fails hard on invalid pyproject.toml
+# which a developer would want to know
+# otherwise, oldest known-working version is 61.2
+setuptools>=68.0
+
+sphinx
+sphinx_rtd_theme
+
+
+---
+
+requirements_test.txt
+
+---
+
+gevent
+eventlet
+coverage
+pytest>=7.2.0
+pytest-cov

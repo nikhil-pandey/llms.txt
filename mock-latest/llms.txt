@@ -1,0 +1,303 @@
+CHANGELOG.rst
+
+---
+
+5.1.0
+=====
+
+-   bpo-44185: `unittest.mock.mock_open`{.interpreted-text role="func"} will call the `close`{.interpreted-text role="func"} method of the file handle mock when it is exiting from the context manager. Patch by Samet Yaslan.
+-   gh-94924: `unittest.mock.create_autospec`{.interpreted-text role="func"} now properly returns coroutine functions compatible with `inspect.iscoroutinefunction`{.interpreted-text role="func"}
+-   bpo-17013: Add `ThreadingMock` to `unittest.mock`{.interpreted-text role="mod"} that can be used to create Mock objects that can wait until they are called. Patch by Karthikeyan Singaravelan and Mario Corchero.
+-   bpo-41768: `unittest.mock`{.interpreted-text role="mod"} speccing no longer calls class properties. Patch by Melanie Witt.
+
+5.0.2
+=====
+
+-   gh-102978: Fixes `unittest.mock.patch`{.interpreted-text role="func"} not enforcing function signatures for methods decorated with `@classmethod` or `@staticmethod` when patch is called with `autospec=True`.
+-   gh-103329: Regression tests for the behaviour of `unittest.mock.PropertyMock` were added.
+
+5.0.1
+=====
+
+-   gh-100740: Fix `unittest.mock.Mock` not respecting the spec for attribute names prefixed with `assert`.
+-   gh-100690: `Mock` objects which are not unsafe will now raise an `AttributeError` when accessing an attribute that matches the name of an assertion but without the prefix `assert_`, e.g. accessing `called_once` instead of `assert_called_once`. This is in addition to this already happening for accessing attributes with prefixes `assert`, `assret`, `asert`, `aseert`, and `assrt`.
+-   gh-96127: `inspect.signature` was raising `TypeError` on call with mock objects. Now it correctly returns `(*args, **kwargs)` as infered signature.
+
+5.0.0
+=====
+
+-   gh-98624: Add a mutex to unittest.mock.NonCallableMock to protect concurrent access to mock attributes.
+-   bpo-43478: Mocks can no longer be used as the specs for other Mocks. As a result, an already-mocked object cannot have an attribute mocked using [autospec=True]{.title-ref} or be the subject of a [create\_autospec(\...)]{.title-ref} call. This can uncover bugs in tests since these Mock-derived Mocks will always pass certain tests (e.g. isinstance) and builtin assert functions (e.g. assert\_called\_once\_with) will unconditionally pass.
+-   bpo-45156: Fixes infinite loop on `unittest.mock.seal`{.interpreted-text role="func"} of mocks created by `~unittest.create_autospec`{.interpreted-text role="func"}.
+-   bpo-41403: Make `mock.patch`{.interpreted-text role="meth"} raise a `TypeError`{.interpreted-text role="exc"} with a relevant error message on invalid arg. Previously it allowed a cryptic `AttributeError`{.interpreted-text role="exc"} to escape.
+-   gh-91803: Fix an error when using a method of objects mocked with `unittest.mock.create_autospec`{.interpreted-text role="func"} after it was sealed with `unittest.mock.seal`{.interpreted-text role="func"} function.
+-   bpo-41877: AttributeError for suspected misspellings of assertions on mocks are now pointing out that the cause are misspelled assertions and also what to do if the misspelling is actually an intended attribute name. The unittest.mock document is also updated to reflect the current set of recognised misspellings.
+-   bpo-43478: Mocks can no longer be provided as the specs for other Mocks. As a result, an already-mocked object cannot be passed to [mock.Mock()]{.title-ref}. This can uncover bugs in tests since these Mock-derived Mocks will always pass certain tests (e.g. isinstance) and builtin assert functions (e.g. assert\_called\_once\_with) will unconditionally pass.
+-   bpo-45010: Remove support of special method `__div__` in `unittest.mock`{.interpreted-text role="mod"}. It is not used in Python 3.
+-   gh-84753: `inspect.iscoroutinefunction`{.interpreted-text role="func"} now properly returns `True` when an instance of `unittest.mock.AsyncMock`{.interpreted-text role="class"} is passed to it. This makes it consistent with behavior of `asyncio.iscoroutinefunction`{.interpreted-text role="func"}. Patch by Mehdi ABAAKOUK.
+-   bpo-46852: Remove the undocumented private `float.__set_format__()` method, previously known as `float.__setformat__()` in Python 3.7. Its docstring said: \"You probably don\'t want to use this function. It exists mainly to be used in Python\'s test suite.\" Patch by Victor Stinner.
+-   gh-98086: Make sure `patch.dict()` can be applied on async functions.
+-   gh-100287: Fix the interaction of `unittest.mock.seal`{.interpreted-text role="func"} with `unittest.mock.AsyncMock`{.interpreted-text role="class"}.
+-   gh-83076: Instantiation of `Mock()` and `AsyncMock()` is now 3.8x faster.
+-   bpo-41877: A check is added against misspellings of autospect, auto\_spec and set\_spec being passed as arguments to patch, patch.object and create\_autospec.
+
+4.0.3
+=====
+
+-   bpo-42532: Remove unexpected call of `__bool__` when passing a `spec_arg` argument to a Mock.
+-   bpo-39966: Revert bpo-25597. `unittest.mock.MagicMock`{.interpreted-text role="class"} with wraps\' set uses default return values for magic methods.
+-   bpo-41877: Mock objects which are not unsafe will now raise an AttributeError if an attribute with the prefix asert, aseert, or assrt is accessed, in addition to this already happening for the prefixes assert or assret.
+-   bpo-40126: Fixed reverting multiple patches in unittest.mock. Patcher\'s `__exit__()` is now never called if its `__enter__()` is failed. Returning true from `__exit__()` silences now the exception.
+
+4.0.2
+=====
+
+-   bpo-39915: Ensure `unittest.mock.AsyncMock.await_args_list`{.interpreted-text role="attr"} has call objects in the order of awaited arguments instead of using `unittest.mock.Mock.call_args`{.interpreted-text role="attr"} which has the last value of the call. Patch by Karthikeyan Singaravelan.
+
+4.0.1
+=====
+
+-   Remove the universal marker from the wheel.
+
+4.0.0
+=====
+
+-   No Changes from 4.0.0b1.
+
+4.0.0b1
+=======
+
+-   The release is a fresh cut of cpython\'s [4a686504]{.title-ref}\_\_. All changes to `mock`{.interpreted-text role="mod"} from that commit and before are included in this release along with the subsequent changes listed below.
+
+    \_\_ <https://github.com/python/cpython/commit/4a686504eb2bbf69adf78077458508a7ba131667>
+
+-   bpo-37972: Subscripts to the [unittest.mock.call]{.title-ref} objects now receive the same chaining mechanism as any other custom attributes, so that the following usage no longer raises a \`TypeError\`:
+
+    call().foo().\_\_getitem\_\_(\'bar\')
+
+    Patch by blhsing
+
+-   bpo-38839: Fix some unused functions in tests. Patch by Adam Johnson.
+
+-   bpo-39485: Fix a bug in `unittest.mock.create_autospec`{.interpreted-text role="func"} that would complain about the wrong number of arguments for custom descriptors defined in an extension module returning functions.
+
+-   bpo-39082: Allow AsyncMock to correctly patch static/class methods
+
+-   bpo-38093: Fixes AsyncMock so it doesn\'t crash when used with AsyncContextManagers or AsyncIterators.
+
+-   bpo-38859: AsyncMock now returns StopAsyncIteration on the exaustion of a side\_effects iterable. Since PEP-479 its Impossible to raise a StopIteration exception from a coroutine.
+
+-   bpo-38163: Child mocks will now detect their type as either synchronous or asynchronous, asynchronous child mocks will be AsyncMocks and synchronous child mocks will be either MagicMock or Mock (depending on their parent type).
+
+-   bpo-38473: Use signature from inner mock for autospecced methods attached with `unittest.mock.attach_mock`{.interpreted-text role="func"}. Patch by Karthikeyan Singaravelan.
+
+-   bpo-38136: Changes AsyncMock call count and await count to be two different counters. Now await count only counts when a coroutine has been awaited, not when it has been called, and vice-versa. Update the documentation around this.
+
+-   bpo-37555: Fix [NonCallableMock.\_call\_matcher]{.title-ref} returning tuple instead of [\_Call]{.title-ref} object when [self.\_spec\_signature]{.title-ref} exists. Patch by Elizabeth Uselton
+
+-   bpo-37251: Remove [\_\_code\_\_]{.title-ref} check in AsyncMock that incorrectly evaluated function specs as async objects but failed to evaluate classes with [\_\_await\_\_]{.title-ref} but no [\_\_code\_\_]{.title-ref} attribute defined as async objects.
+
+-   bpo-38669: Raise `TypeError`{.interpreted-text role="exc"} when passing target as a string with `unittest.mock.patch.object`{.interpreted-text role="meth"}.
+
+-   bpo-25597: Ensure, if `wraps` is supplied to `unittest.mock.MagicMock`{.interpreted-text role="class"}, it is used to calculate return values for the magic methods instead of using the default return values. Patch by Karthikeyan Singaravelan.
+
+-   bpo-38108: Any synchronous magic methods on an AsyncMock now return a MagicMock. Any asynchronous magic methods on a MagicMock now return an AsyncMock.
+
+-   bpo-21478: Record calls to parent when autospecced object is attached to a mock using `unittest.mock.attach_mock`{.interpreted-text role="func"}. Patch by Karthikeyan Singaravelan.
+
+-   bpo-38857: AsyncMock fix for return values that are awaitable types. This also covers side\_effect iterable values that happend to be awaitable, and wraps callables that return an awaitable type. Before these awaitables were being awaited instead of being returned as is.
+
+-   bpo-38932: Mock fully resets child objects on reset\_mock(). Patch by Vegard Stikbakke
+
+-   bpo-37685: Fixed `__eq__`, `__lt__` etc implementations in some classes. They now return `NotImplemented`{.interpreted-text role="data"} for unsupported type of the other operand. This allows the other operand to play role (for example the equality comparison with `~unittest.mock.ANY`{.interpreted-text role="data"} will return `True`).
+
+-   bpo-37212: `unittest.mock.call`{.interpreted-text role="func"} now preserves the order of keyword arguments in repr output. Patch by Karthikeyan Singaravelan.
+
+-   bpo-37828: Fix default mock name in `unittest.mock.Mock.assert_called`{.interpreted-text role="meth"} exceptions. Patch by Abraham Toriz Cruz.
+
+-   bpo-36871: Improve error handling for the assert\_has\_calls and assert\_has\_awaits methods of mocks. Fixed a bug where any errors encountered while binding the expected calls to the mock\'s spec were silently swallowed, leading to misleading error output.
+
+-   bpo-21600: Fix `mock.patch.stopall`{.interpreted-text role="func"} to stop active patches that were created with `mock.patch.dict`{.interpreted-text role="func"}.
+
+-   bpo-38161: Removes \_AwaitEvent from AsyncMock.
+
+-   bpo-36871: Ensure method signature is used instead of constructor signature of a class while asserting mock object against method calls. Patch by Karthikeyan Singaravelan.
+
+3.0.5
+=====
+
+-   bpo-31855: `unittest.mock.mock_open`{.interpreted-text role="func"} results now respects the argument of read(\[size\]). Patch contributed by Rémi Lapeyre.
+
+3.0.4
+=====
+
+-   Include the license, readme and changelog in the source distribution.
+
+3.0.3
+=====
+
+-   Fixed patching of dictionaries, when specifying the target with a unicode on Python 2.
+
+3.0.2
+=====
+
+-   Add missing `funcsigs` dependency on Python 2.
+
+3.0.1
+=====
+
+-   Fix packaging issue where `six` was missed as a dependency.
+
+3.0.0
+=====
+
+-   bpo-35226: Recursively check arguments when testing for equality of `unittest.mock.call`{.interpreted-text role="class"} objects and add note that tracking of parameters used to create ancestors of mocks in `mock_calls` is not possible.
+-   bpo-31177: Fix bug that prevented using `reset_mock
+    <unittest.mock.Mock.reset_mock>`{.interpreted-text role="meth"} on mock instances with deleted attributes
+-   bpo-26704: Added test demonstrating double-patching of an instance method. Patch by Anthony Sottile.
+-   bpo-35500: Write expected and actual call parameters on separate lines in `unittest.mock.Mock.assert_called_with`{.interpreted-text role="meth"} assertion errors. Contributed by Susan Su.
+-   bpo-35330: When a `Mock`{.interpreted-text role="class"} instance was used to wrap an object, if [side\_effect]{.title-ref} is used in one of the mocks of it methods, don\'t call the original implementation and return the result of using the side effect the same way that it is done with return\_value.
+-   bpo-30541: Add new function to seal a mock and prevent the automatically creation of child mocks. Patch by Mario Corchero.
+-   bpo-35022: `unittest.mock.MagicMock`{.interpreted-text role="class"} now supports the `__fspath__` method (from `os.PathLike`{.interpreted-text role="class"}).
+-   bpo-33516: `unittest.mock.MagicMock`{.interpreted-text role="class"} now supports the `__round__` magic method.
+-   bpo-35512: `unittest.mock.patch.dict`{.interpreted-text role="func"} used as a decorator with string target resolves the target during function call instead of during decorator construction. Patch by Karthikeyan Singaravelan.
+-   bpo-36366: Calling `stop()` on an unstarted or stopped `unittest.mock.patch`{.interpreted-text role="func"} object will now return [None]{.title-ref} instead of raising `RuntimeError`{.interpreted-text role="exc"}, making the method idempotent. Patch byKarthikeyan Singaravelan.
+-   bpo-35357: Internal attributes\' names of unittest.mock.\_Call and unittest.mock.MagicProxy (name, parent & from\_kall) are now prefixed with \_[mock]() in order to prevent clashes with widely used object attributes. Fixed minor typo in test function name.
+-   bpo-20239: Allow repeated assignment deletion of `unittest.mock.Mock`{.interpreted-text role="class"} attributes. Patch by Pablo Galindo.
+-   bpo-35082: Don\'t return deleted attributes when calling dir on a `unittest.mock.Mock`{.interpreted-text role="class"}.
+-   bpo-0: Improved an error message when mock assert\_has\_calls fails.
+-   bpo-23078: Add support for `classmethod`{.interpreted-text role="func"} and `staticmethod`{.interpreted-text role="func"} to `unittest.mock.create_autospec`{.interpreted-text role="func"}. Initial patch by Felipe Ochoa.
+-   bpo-21478: Calls to a child function created with `unittest.mock.create_autospec`{.interpreted-text role="func"} should propagate to the parent. Patch by Karthikeyan Singaravelan.
+-   bpo-36598: Fix `isinstance` check for Mock objects with spec when the code is executed under tracing. Patch by Karthikeyan Singaravelan.
+-   bpo-32933: `unittest.mock.mock_open`{.interpreted-text role="func"} now supports iteration over the file contents. Patch by Tony Flury.
+-   bpo-21269: Add `args` and `kwargs` properties to mock call objects. Contributed by Kumar Akshay.
+-   bpo-17185: Set `__signature__` on mock for `inspect`{.interpreted-text role="mod"} to get signature. Patch by Karthikeyan Singaravelan.
+-   bpo-35047: `unittest.mock` now includes mock calls in exception messages if `assert_not_called`, `assert_called_once`, or `assert_called_once_with` fails. Patch by Petter Strandmark.
+-   bpo-28380: unittest.mock Mock autospec functions now properly support assert\_called, assert\_not\_called, and assert\_called\_once.
+-   bpo-28735: Fixed the comparison of mock.MagickMock with mock.ANY.
+-   bpo-20804: The unittest.mock.sentinel attributes now preserve their identity when they are copied or pickled.
+-   bpo-28961: Fix unittest.mock.\_Call helper: don\'t ignore the name parameter anymore. Patch written by Jiajun Huang.
+-   bpo-26750: unittest.mock.create\_autospec() now works properly for subclasses of property() and other data descriptors.
+-   bpo-21271: New keyword only parameters in reset\_mock call.
+-   bpo-26807: mock\_open \'files\' no longer error on readline at end of file. Patch from Yolanda Robla.
+-   bpo-25195: Fix a regression in mock.MagicMock. \_Call is a subclass of tuple (changeset 3603bae63c13 only works for classes) so we need to implement \_\_ne\_\_ ourselves. Patch by Andrew Plummer.
+
+2.0.0 and earlier
+=================
+
+-   bpo-26323: Add Mock.assert\_called() and Mock.assert\_called\_once() methods to unittest.mock. Patch written by Amit Saha.
+-   bpo-22138: Fix mock.patch behavior when patching descriptors. Restore original values after patching. Patch contributed by Sean McCully.
+-   bpo-24857: Comparing call\_args to a long sequence now correctly returns a boolean result instead of raising an exception. Patch by A Kaptur.
+-   bpo-23004: mock\_open() now reads binary data correctly when the type of read\_data is bytes. Initial patch by Aaron Hill.
+-   bpo-21750: mock\_open.read\_data can now be read from each instance, as it could in Python 3.3.
+-   bpo-18622: unittest.mock.mock\_open().reset\_mock would recurse infinitely. Patch from Nicola Palumbo and Laurent De Buyst.
+-   bpo-23661: unittest.mock side\_effects can now be exceptions again. This was a regression vs Python 3.4. Patch from Ignacio Rossi
+-   bpo-23310: Fix MagicMock\'s initializer to work with \_\_methods\_\_, just like configure\_mock(). Patch by Kasia Jachim.
+-   bpo-23568: Add rdivmod support to MagicMock() objects. Patch by Håkan Lövdahl.
+-   bpo-23581: Add matmul support to MagicMock. Patch by Håkan Lövdahl.
+-   bpo-23326: Removed \_\_ne\_\_ implementations. Since fixing default \_\_ne\_\_ implementation in bpo-21408 they are redundant. **\* NOT BACKPORTED**\*
+-   bpo-21270: We now override tuple methods in mock.call objects so that they can be used as normal call attributes.
+-   bpo-21256: Printout of keyword args should be in deterministic order in a mock function call. This will help to write better doctests.
+-   bpo-21262: New method assert\_not\_called for Mock. It raises AssertionError if the mock has been called.
+-   bpo-21238: New keyword argument [unsafe]{.title-ref} to Mock. It raises [AttributeError]{.title-ref} incase of an attribute startswith assert or assret.
+-   bpo-21239: patch.stopall() didn\'t work deterministically when the same name was patched more than once.
+-   bpo-21222: Passing name keyword argument to mock.create\_autospec now works.
+-   bpo-17826: setting an iterable side\_effect on a mock function created by create\_autospec now works. Patch by Kushal Das.
+-   bpo-17826: setting an iterable side\_effect on a mock function created by create\_autospec now works. Patch by Kushal Das.
+-   bpo-20968: unittest.mock.MagicMock now supports division. Patch by Johannes Baiter.
+-   bpo-20189: unittest.mock now no longer assumes that any object for which it could get an inspect.Signature is a callable written in Python. Fix courtesy of Michael Foord.
+-   bpo-17467: add readline and readlines support to mock\_open in unittest.mock.
+-   bpo-17015: When it has a spec, a Mock object now inspects its signature when matching calls, so that arguments can be matched positionally or by name.
+-   bpo-15323: improve failure message of Mock.assert\_called\_once\_with
+-   bpo-14857: fix regression in references to PEP 3135 implicit \_\_class\_\_ closure variable (Reopens bpo-12370)
+-   bpo-14295: Add unittest.mock
+
+
+---
+
+LICENSE.txt
+
+---
+
+Copyright (c) 2003-2013, Michael Foord & the mock team
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+---
+
+README.rst
+
+---
+
+mock is a library for testing in Python. It allows you to replace parts of your system under test with mock objects and make assertions about how they have been used.
+
+mock is now part of the Python standard library, available as [unittest.mock](https://docs.python.org/dev/library/unittest.mock.html) in Python 3.3 onwards.
+
+This package contains a rolling backport of the standard library mock code compatible with Python 3.6 and up.
+
+Please see the standard library documentation for more details.
+
+Homepage
+
+:   [Mock Homepage](http://mock.readthedocs.org/en/latest/)
+
+Download
+
+:   [Mock on PyPI](https://pypi.org/project/mock/)
+
+Documentation
+
+:   [Python Docs](https://docs.python.org/dev/library/unittest.mock.html)
+
+License
+
+:   [BSD License](https://github.com/testing-cabal/mock/blob/master/LICENSE.txt)
+
+Support
+
+:   [Mailing list (testing-in-python\@lists.idyll.org)](http://lists.idyll.org/listinfo/testing-in-python)
+
+Code
+
+:   [GitHub](https://github.com/testing-cabal/mock)
+
+Issue tracker
+
+:   [GitHub Issues](https://github.com/testing-cabal/mock/issues)
+
+Build status
+
+:   \_ \_
+
+
+---
+
+lastsync.txt
+
+---
+
+e6379f72cbc60f6b3c5676f9e225d4f145d5693f

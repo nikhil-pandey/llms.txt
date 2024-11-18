@@ -1,0 +1,965 @@
+index.md
+
+---
+
+- tocdepth  
+    3
+
+# `cachetools` --- Extensible memoizing collections and decorators
+
+<div class="module">
+
+cachetools
+
+</div>
+
+This module provides various memoizing collections and decorators, including variants of the Python Standard Library's [@lru\_cache](http://docs.python.org/3/library/functools.html#functools.lru_cache) function decorator.
+
+For the purpose of this module, a *cache* is a [mutable](http://docs.python.org/dev/glossary.html#term-mutable) [mapping](http://docs.python.org/dev/glossary.html#term-mapping) of a fixed maximum size. When the cache is full, i.e. by adding another item the cache would exceed its maximum size, the cache must choose which item(s) to discard based on a suitable [cache algorithm](http://en.wikipedia.org/wiki/Cache_algorithms).
+
+This module provides multiple cache classes based on different cache algorithms, as well as decorators for easily memoizing function and method calls.
+
+<div class="testsetup">
+
+  - 
+from cachetools import cached, cachedmethod, LRUCache, TLRUCache, TTLCache
+
+from unittest import mock urllib = mock.MagicMock()
+
+import time
+
+</div>
+
+## Cache implementations
+
+This module provides several classes implementing caches using different cache algorithms. All these classes derive from class <span class="title-ref">Cache</span>, which in turn derives from <span class="title-ref">collections.MutableMapping</span>, and provide <span class="title-ref">maxsize</span> and <span class="title-ref">currsize</span> properties to retrieve the maximum and current size of the cache. When a cache is full, <span class="title-ref">Cache.\_\_setitem\_\_()</span> calls <span class="title-ref">self.popitem()</span> repeatedly until there is enough room for the item to be added.
+
+In general, a cache's size is the total size of its item's values. Therefore, <span class="title-ref">Cache</span> provides a <span class="title-ref">getsizeof</span> method, which returns the size of a given <span class="title-ref">value</span>. The default implementation of <span class="title-ref">getsizeof</span> returns <span class="title-ref">1</span> irrespective of its argument, making the cache's size equal to the number of its items, or `len(cache)`. For convenience, all cache classes accept an optional named constructor parameter <span class="title-ref">getsizeof</span>, which may specify a function of one argument used to retrieve the size of an item's value.
+
+Note that the values of a <span class="title-ref">Cache</span> are mutable by default, as are e.g. the values of a <span class="title-ref">dict</span>. It is the user's responsibility to take care that cached values are not accidentally modified. This is especially important when using a custom <span class="title-ref">getsizeof</span> function, since the size of an item's value will only be computed when the item is inserted into the cache.
+
+\> **Note** \> Please be aware that all these classes are *not* thread-safe. Access to a shared cache from multiple threads must be properly synchronized, e.g. by using one of the memoizing decorators with a suitable <span class="title-ref">lock</span> object.
+
+<div class="autoclass" data-members="currsize, getsizeof, maxsize">
+
+Cache(maxsize, getsizeof=None)
+
+This class discards arbitrary items using <span class="title-ref">popitem</span> to make space when necessary. Derived classes may override <span class="title-ref">popitem</span> to implement specific caching strategies. If a subclass has to keep track of item access, insertion or deletion, it may additionally need to override <span class="title-ref">\_\_getitem\_\_</span>, <span class="title-ref">\_\_setitem\_\_</span> and <span class="title-ref">\_\_delitem\_\_</span>.
+
+</div>
+
+<div class="autoclass" data-members="popitem">
+
+FIFOCache(maxsize, getsizeof=None)
+
+This class evicts items in the order they were added to make space when necessary.
+
+</div>
+
+<div class="autoclass" data-members="popitem">
+
+LFUCache(maxsize, getsizeof=None)
+
+This class counts how often an item is retrieved, and discards the items used least often to make space when necessary.
+
+</div>
+
+<div class="autoclass" data-members="popitem">
+
+LRUCache(maxsize, getsizeof=None)
+
+This class discards the least recently used items first to make space when necessary.
+
+</div>
+
+<div class="autoclass" data-members="popitem">
+
+MRUCache(maxsize, getsizeof=None)
+
+This class discards the most recently used items first to make space when necessary.
+
+<div class="deprecated">
+
+5.4
+
+</div>
+
+<span class="title-ref">MRUCache</span> has been deprecated due to lack of use, to reduce maintenance. Please choose another cache implementation that suits your needs.
+
+</div>
+
+<div class="autoclass" data-members="choice, popitem">
+
+RRCache(maxsize, choice=random.choice, getsizeof=None)
+
+This class randomly selects candidate items and discards them to make space when necessary.
+
+By default, items are selected from the list of cache keys using <span class="title-ref">random.choice</span>. The optional argument <span class="title-ref">choice</span> may specify an alternative function that returns an arbitrary element from a non-empty sequence.
+
+</div>
+
+<div class="autoclass" data-members="popitem, timer, ttl">
+
+TTLCache(maxsize, ttl, timer=time.monotonic, getsizeof=None)
+
+This class associates a time-to-live value with each item. Items that expire because they have exceeded their time-to-live will be no longer accessible, and will be removed eventually. If no expired items are there to remove, the least recently used items will be discarded first to make space when necessary.
+
+By default, the time-to-live is specified in seconds and <span class="title-ref">time.monotonic</span> is used to retrieve the current time.
+
+<div class="testcode">
+
+cache = TTLCache(maxsize=10, ttl=60)
+
+</div>
+
+A custom <span class="title-ref">timer</span> function can also be supplied, which does not have to return seconds, or even a numeric value. The expression <span class="title-ref">timer() + ttl</span> at the time of insertion defines the expiration time of a cache item and must be comparable against later results of <span class="title-ref">timer()</span>, but <span class="title-ref">ttl</span> does not necessarily have to be a number, either.
+
+<div class="testcode">
+
+from datetime import datetime, timedelta
+
+cache = TTLCache(maxsize=10, ttl=timedelta(hours=12), timer=datetime.now)
+
+</div>
+
+<div class="method">
+
+expire(self, time=None)
+
+Expired items will be removed from a cache only at the next mutating operation, e.g. <span class="title-ref">\_\_setitem\_\_</span> or <span class="title-ref">\_\_delitem\_\_</span>, and therefore may still claim memory. Calling this method removes all items whose time-to-live would have expired by <span class="title-ref">time</span>, so garbage collection is free to reuse their memory. If <span class="title-ref">time</span> is <span class="title-ref">None</span>, this removes all items that have expired by the current value returned by <span class="title-ref">timer</span>.
+
+  - returns  
+    An iterable of expired <span class="title-ref">(key, value)</span> pairs.
+
+</div>
+
+</div>
+
+<div class="autoclass" data-members="popitem, timer, ttu">
+
+TLRUCache(maxsize, ttu, timer=time.monotonic, getsizeof=None)
+
+Similar to <span class="title-ref">TTLCache</span>, this class also associates an expiration time with each item. However, for <span class="title-ref">TLRUCache</span> items, expiration time is calculated by a user-provided time-to-use (<span class="title-ref">ttu</span>) function, which is passed three arguments at the time of insertion: the new item's key and value, as well as the current value of <span class="title-ref">timer()</span>.
+
+<div class="testcode">
+
+  - def my\_ttu(\_key, value, now):  
+    \# assume value.ttu contains the item's time-to-use in seconds \# note that the \_key argument is ignored in this example return now + value.ttu
+
+cache = TLRUCache(maxsize=10, ttu=my\_ttu)
+
+</div>
+
+The expression <span class="title-ref">ttu(key, value, timer())</span> defines the expiration time of a cache item, and must be comparable against later results of <span class="title-ref">timer()</span>. As with <span class="title-ref">TTLCache</span>, a custom <span class="title-ref">timer</span> function can be supplied, which does not have to return a numeric value.
+
+<div class="testcode">
+
+from datetime import datetime, timedelta
+
+  - def datetime\_ttu(\_key, value, now):  
+    \# assume now to be of type datetime.datetime, and \# value.hours to contain the item's time-to-use in hours return now + timedelta(hours=value.hours)
+
+cache = TLRUCache(maxsize=10, ttu=datetime\_ttu, timer=datetime.now)
+
+</div>
+
+Items that expire because they have exceeded their time-to-use will be no longer accessible, and will be removed eventually. If no expired items are there to remove, the least recently used items will be discarded first to make space when necessary.
+
+<div class="method">
+
+expire(self, time=None)
+
+Expired items will be removed from a cache only at the next mutating operation, e.g. <span class="title-ref">\_\_setitem\_\_</span> or <span class="title-ref">\_\_delitem\_\_</span>, and therefore may still claim memory. Calling this method removes all items whose time-to-use would have expired by <span class="title-ref">time</span>, so garbage collection is free to reuse their memory. If <span class="title-ref">time</span> is <span class="title-ref">None</span>, this removes all items that have expired by the current value returned by <span class="title-ref">timer</span>.
+
+  - returns  
+    An iterable of expired <span class="title-ref">(key, value)</span> pairs.
+
+</div>
+
+</div>
+
+## Extending cache classes
+
+Sometimes it may be desirable to notice when and what cache items are evicted, i.e. removed from a cache to make room for new items. Since all cache implementations call <span class="title-ref">popitem</span> to evict items from the cache, this can be achieved by overriding this method in a subclass:
+
+<div class="doctest" data-pyversion="&gt;= 3">
+
+\>\>\> class MyCache(LRUCache): ... def popitem(self): ... key, value = super().popitem() ... print('Key "%s" evicted with value "%s"' % (key, value)) ... return key, value
+
+\>\>\> c = MyCache(maxsize=2) \>\>\> c\['a'\] = 1 \>\>\> c\['b'\] = 2 \>\>\> c\['c'\] = 3 Key "a" evicted with value "1"
+
+</div>
+
+With <span class="title-ref">TTLCache</span> and <span class="title-ref">TLRUCache</span>, items may also be removed after they expire. In this case, <span class="title-ref">popitem</span> will *not* be called, but <span class="title-ref">expire</span> will be called from the next mutating operation and will return an iterable of the expired <span class="title-ref">(key, value)</span> pairs. By overrding <span class="title-ref">expire</span>, a subclass will be able to track expired items:
+
+<div class="doctest" data-pyversion="&gt;= 3">
+
+\>\>\> class ExpCache(TTLCache): ... def expire(self, time=None): ... items = super().expire(time) ... print(f"Expired items: {items}") ... return items
+
+\>\>\> c = ExpCache(maxsize=10, ttl=1.0) \>\>\> c\['a'\] = 1 Expired items: \[\] \>\>\> c\['b'\] = 2 Expired items: \[\] \>\>\> time.sleep(1.5) \>\>\> c\['c'\] = 3 Expired items: \[('a', 1), ('b', 2)\]
+
+</div>
+
+Similar to the standard library's <span class="title-ref">collections.defaultdict</span>, subclasses of <span class="title-ref">Cache</span> may implement a <span class="title-ref">\_\_missing\_\_</span> method which is called by <span class="title-ref">Cache.\_\_getitem\_\_</span> if the requested key is not found:
+
+<div class="doctest" data-pyversion="&gt;= 3">
+
+\>\>\> class PepStore(LRUCache): ... def \_\_missing\_\_(self, key): ... """Retrieve text of a Python Enhancement Proposal""" ... url = '<http://www.python.org/dev/peps/pep-%04d/>' % key ... with urllib.request.urlopen(url) as s: ... pep = s.read() ... self\[key\] = pep \# store text in cache ... return pep
+
+\>\>\> peps = PepStore(maxsize=4) \>\>\> for n in 8, 9, 290, 308, 320, 8, 218, 320, 279, 289, 320: ... pep = peps\[n\] \>\>\> print(sorted(peps.keys())) \[218, 279, 289, 320\]
+
+</div>
+
+Note, though, that such a class does not really behave like a *cache* any more, and will lead to surprising results when used with any of the memoizing decorators described below. However, it may be useful in its own right.
+
+## Memoizing decorators
+
+The `cachetools` module provides decorators for memoizing function and method calls. This can save time when a function is often called with the same arguments:
+
+<div class="doctest">
+
+\>\>\> @cached(cache={}) ... def fib(n): ... 'Compute the nth number in the Fibonacci sequence' ... return n if n \< 2 else fib(n - 1) + fib(n - 2)
+
+\>\>\> fib(42) 267914296
+
+</div>
+
+<div class="decorator">
+
+cached(cache, key=cachetools.keys.hashkey, lock=None, info=False)
+
+Decorator to wrap a function with a memoizing callable that saves results in a cache.
+
+The <span class="title-ref">cache</span> argument specifies a cache object to store previous function arguments and return values. Note that <span class="title-ref">cache</span> need not be an instance of the cache implementations provided by the `cachetools` module. <span class="title-ref">cached</span> will work with any mutable mapping type, including plain <span class="title-ref">dict</span> and <span class="title-ref">weakref.WeakValueDictionary</span>.
+
+<span class="title-ref">key</span> specifies a function that will be called with the same positional and keyword arguments as the wrapped function itself, and which has to return a suitable cache key. Since caches are mappings, the object returned by <span class="title-ref">key</span> must be hashable. The default is to call <span class="title-ref">cachetools.keys.hashkey</span>.
+
+If <span class="title-ref">lock</span> is not <span class="title-ref">None</span>, it must specify an object implementing the [context manager](http://docs.python.org/dev/glossary.html#term-context-manager) protocol. Any access to the cache will then be nested in a `with lock:` statement. This can be used for synchronizing thread access to the cache by providing a <span class="title-ref">threading.Lock</span> instance, for example.
+
+\> **Note**
+
+</div>
+
+  - \>  
+    The <span class="title-ref">lock</span> context manager is used only to guard access to the cache object. The underlying wrapped function will be called outside the <span class="title-ref">with</span> statement, and must be thread-safe by itself.
+    
+    The decorator's <span class="title-ref">cache</span>, <span class="title-ref">key</span> and <span class="title-ref">lock</span> parameters are also available as <span class="title-ref">cache</span>, <span class="title-ref">cache\_key</span> and <span class="title-ref">cache\_lock</span> attributes of the memoizing wrapper function. These can be used for clearing the cache or invalidating individual cache items, for example.
+    
+    <div class="testcode">
+    
+    </div>
+    
+    from threading import Lock
+    
+    \# 640K should be enough for anyone... @cached(cache=LRUCache(maxsize=640\*1024, getsizeof=len), lock=Lock()) def get\_pep(num): 'Retrieve text of a Python Enhancement Proposal' url = '<http://www.python.org/dev/peps/pep-%04d/>' % num with urllib.request.urlopen(url) as s: return s.read()
+    
+    \# make sure access to cache is synchronized with get\_pep.cache\_lock: get\_pep.cache.clear()
+    
+    \# always use the key function for accessing cache items with get\_pep.cache\_lock: get\_pep.cache.pop(get\_pep.cache\_key(42), None)
+    
+    For the common use case of clearing or invalidating the cache, the decorator also provides a <span class="title-ref">cache\_clear()</span> function which takes care of locking automatically, if needed:
+    
+    <div class="testcode">
+    
+    </div>
+    
+    \# no need for get\_pep.cache\_lock here get\_pep.cache\_clear()
+    
+    If <span class="title-ref">info</span> is set to <span class="title-ref">True</span>, the wrapped function is instrumented with a <span class="title-ref">cache\_info()</span> function that returns a named tuple showing <span class="title-ref">hits</span>, <span class="title-ref">misses</span>, <span class="title-ref">maxsize</span> and <span class="title-ref">currsize</span>, to help measure the effectiveness of the cache.
+    
+    <div class="note">
+    
+    <div class="title">
+    
+    Note
+    
+    </div>
+    
+    </div>
+    
+    Note that this will inflict a - probably minor - performance penalty, so it has to be explicitly enabled.
+    
+    <div class="doctest">
+    
+    </div>
+    
+      - pyversion  
+        \>= 3
+    
+    \>\>\> @cached(cache=LRUCache(maxsize=32), info=True) ... def get\_pep(num): ... url = '<http://www.python.org/dev/peps/pep-%04d/>' % num ... with urllib.request.urlopen(url) as s: ... return s.read()
+    
+    \>\>\> for n in 8, 290, 308, 320, 8, 218, 320, 279, 289, 320, 9991: ... pep = get\_pep(n)
+    
+    \>\>\> get\_pep.cache\_info() CacheInfo(hits=3, misses=8, maxsize=32, currsize=8)
+    
+    The original underlying function is accessible through the <span class="title-ref">\_\_wrapped\_\_</span> attribute. This can be used for introspection or for bypassing the cache.
+    
+    It is also possible to use a single shared cache object with multiple functions. However, care must be taken that different cache keys are generated for each function, even for identical function arguments:
+    
+    <div class="doctest">
+    
+    </div>
+    
+      - options  
+        \+ELLIPSIS
+    
+    \>\>\> from cachetools.keys import hashkey \>\>\> from functools import partial
+    
+    \>\>\> \# shared cache for integer sequences \>\>\> numcache = {}
+    
+    \>\>\> \# compute Fibonacci numbers \>\>\> @cached(numcache, key=partial(hashkey, 'fib')) ... def fib(n): ... return n if n \< 2 else fib(n - 1) + fib(n - 2)
+    
+    \>\>\> \# compute Lucas numbers \>\>\> @cached(numcache, key=partial(hashkey, 'luc')) ... def luc(n): ... return 2 - n if n \< 2 else luc(n - 1) + luc(n - 2)
+    
+    \>\>\> fib(42) 267914296 \>\>\> luc(42) 599074578 \>\>\> list(sorted(numcache.items())) \[..., (('fib', 42), 267914296), ..., (('luc', 42), 599074578)\]
+
+<div class="decorator">
+
+cachedmethod(cache, key=cachetools.keys.methodkey, lock=None)
+
+Decorator to wrap a class or instance method with a memoizing callable that saves results in a (possibly shared) cache.
+
+The main difference between this and the <span class="title-ref">cached</span> function decorator is that <span class="title-ref">cache</span> and <span class="title-ref">lock</span> are not passed objects, but functions. Both will be called with <span class="title-ref">self</span> (or <span class="title-ref">cls</span> for class methods) as their sole argument to retrieve the cache or lock object for the method's respective instance or class.
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+As with <span class="title-ref">cached</span>, the context manager obtained by calling `lock(self)` will only guard access to the cache itself. It is the user's responsibility to handle concurrent calls to the underlying wrapped method in a multithreaded environment.
+
+</div>
+
+The <span class="title-ref">key</span> function will be called as <span class="title-ref">key(self, \*args, \*\*kwargs)</span> to retrieve a suitable cache key. Note that the default <span class="title-ref">key</span> function, <span class="title-ref">cachetools.keys.methodkey</span>, ignores its first argument, i.e. <span class="title-ref">self</span>. This has mostly historical reasons, but also ensures that <span class="title-ref">self</span> does not have to be hashable. You may provide a different <span class="title-ref">key</span> function, e.g. <span class="title-ref">cachetools.keys.hashkey</span>, if you need <span class="title-ref">self</span> to be part of the cache key.
+
+One advantage of <span class="title-ref">cachedmethod</span> over the <span class="title-ref">cached</span> function decorator is that cache properties such as <span class="title-ref">maxsize</span> can be set at runtime:
+
+<div class="testcode">
+
+class CachedPEPs:
+
+>   - def \_\_init\_\_(self, cachesize):  
+>     self.cache = LRUCache(maxsize=cachesize)
+> 
+> @cachedmethod(lambda self: self.cache) def get(self, num): """Retrieve text of a Python Enhancement Proposal""" url = '<http://www.python.org/dev/peps/pep-%04d/>' % num with urllib.request.urlopen(url) as s: return s.read()
+
+peps = CachedPEPs(cachesize=10) print("PEP \#1: %s" % peps.get(1))
+
+</div>
+
+<div class="testoutput" data-hide="" data-options="+ELLIPSIS">
+
+PEP \#1: ...
+
+</div>
+
+When using a shared cache for multiple methods, be aware that different cache keys must be created for each method even when function arguments are the same, just as with the <span class="title-ref">@cached</span> decorator:
+
+<div class="testcode">
+
+class CachedReferences:
+
+>   - def \_\_init\_\_(self, cachesize):  
+>     self.cache = LRUCache(maxsize=cachesize)
+> 
+> @cachedmethod(lambda self: self.cache, key=partial(hashkey, 'pep')) def get\_pep(self, num): """Retrieve text of a Python Enhancement Proposal""" url = '<http://www.python.org/dev/peps/pep-%04d/>' % num with urllib.request.urlopen(url) as s: return s.read()
+> 
+> @cachedmethod(lambda self: self.cache, key=partial(hashkey, 'rfc')) def get\_rfc(self, num): """Retrieve text of an IETF Request for Comments""" url = '<https://tools.ietf.org/rfc/rfc%d.txt>' % num with urllib.request.urlopen(url) as s: return s.read()
+
+docs = CachedReferences(cachesize=100) print("PEP \#1: %s" % docs.get\_pep(1)) print("RFC \#1: %s" % docs.get\_rfc(1))
+
+</div>
+
+<div class="testoutput" data-hide="" data-options="+ELLIPSIS">
+
+PEP \#1: ... RFC \#1: ...
+
+</div>
+
+</div>
+
+# `cachetools.keys` --- Key functions for memoizing decorators
+
+<div class="module">
+
+cachetools.keys
+
+</div>
+
+This module provides several functions that can be used as key functions with the <span class="title-ref">cached</span> and <span class="title-ref">cachedmethod</span> decorators:
+
+<div class="autofunction">
+
+hashkey
+
+This function returns a <span class="title-ref">tuple</span> instance suitable as a cache key, provided the positional and keywords arguments are hashable.
+
+</div>
+
+<div class="autofunction">
+
+methodkey
+
+This function is similar to <span class="title-ref">hashkey</span>, but ignores its first positional argument, i.e. <span class="title-ref">self</span> when used with the <span class="title-ref">cachedmethod</span> decorator.
+
+</div>
+
+<div class="autofunction">
+
+typedkey
+
+This function is similar to <span class="title-ref">hashkey</span>, but arguments of different types will yield distinct cache keys. For example, `typedkey(3)` and `typedkey(3.0)` will return different results.
+
+</div>
+
+<div class="autofunction">
+
+typedmethodkey
+
+This function is similar to <span class="title-ref">typedkey</span>, but ignores its first positional argument, i.e. <span class="title-ref">self</span> when used with the <span class="title-ref">cachedmethod</span> decorator.
+
+</div>
+
+These functions can also be helpful when implementing custom key functions for handling some non-hashable arguments. For example, calling the following function with a dictionary as its <span class="title-ref">env</span> argument will raise a <span class="title-ref">TypeError</span>, since <span class="title-ref">dict</span> is not hashable:
+
+    @cached(LRUCache(maxsize=128))
+    def foo(x, y, z, env={}):
+        pass
+
+However, if <span class="title-ref">env</span> always holds only hashable values itself, a custom key function can be written that handles the <span class="title-ref">env</span> keyword argument specially:
+
+    def envkey(*args, env={}, **kwargs):
+        key = hashkey(*args, **kwargs)
+        key += tuple(sorted(env.items()))
+        return key
+
+The <span class="title-ref">envkey</span> function can then be used in decorator declarations like this:
+
+    @cached(LRUCache(maxsize=128), key=envkey)
+    def foo(x, y, z, env={}):
+        pass
+    
+    foo(1, 2, 3, env=dict(a='a', b='b'))
+
+# `cachetools.func` --- <span class="title-ref">functools.lru\_cache</span> compatible decorators
+
+<div class="module">
+
+cachetools.func
+
+</div>
+
+To ease migration from (or to) Python 3's <span class="title-ref">functools.lru\_cache</span>, this module provides several memoizing function decorators with a similar API. All these decorators wrap a function with a memoizing callable that saves up to the <span class="title-ref">maxsize</span> most recent calls, using different caching strategies. If <span class="title-ref">maxsize</span> is set to <span class="title-ref">None</span>, the caching strategy is effectively disabled and the cache can grow without bound.
+
+If the optional argument <span class="title-ref">typed</span> is set to <span class="title-ref">True</span>, function arguments of different types will be cached separately. For example, `f(3)` and `f(3.0)` will be treated as distinct calls with distinct results.
+
+If a <span class="title-ref">user\_function</span> is specified instead, it must be a callable. This allows the decorator to be applied directly to a user function, leaving the <span class="title-ref">maxsize</span> at its default value of 128:
+
+    @cachetools.func.lru_cache
+    def count_vowels(sentence):
+        sentence = sentence.casefold()
+        return sum(sentence.count(vowel) for vowel in 'aeiou')
+
+The wrapped function is instrumented with a <span class="title-ref">cache\_parameters</span> function that returns a new <span class="title-ref">dict</span> showing the values for <span class="title-ref">maxsize</span> and <span class="title-ref">typed</span>. This is for information purposes only. Mutating the values has no effect.
+
+The wrapped function is also instrumented with <span class="title-ref">cache\_info</span> and <span class="title-ref">cache\_clear</span> functions to provide information about cache performance and clear the cache. Please see the <span class="title-ref">functools.lru\_cache</span> documentation for details. Also note that all the decorators in this module are thread-safe by default.
+
+<div class="decorator">
+
+fifo\_cache(user\_function) fifo\_cache(maxsize=128, typed=False)
+
+Decorator that wraps a function with a memoizing callable that saves up to <span class="title-ref">maxsize</span> results based on a First In First Out (FIFO) algorithm.
+
+</div>
+
+<div class="decorator">
+
+lfu\_cache(user\_function) lfu\_cache(maxsize=128, typed=False)
+
+Decorator that wraps a function with a memoizing callable that saves up to <span class="title-ref">maxsize</span> results based on a Least Frequently Used (LFU) algorithm.
+
+</div>
+
+<div class="decorator">
+
+lru\_cache(user\_function) lru\_cache(maxsize=128, typed=False)
+
+Decorator that wraps a function with a memoizing callable that saves up to <span class="title-ref">maxsize</span> results based on a Least Recently Used (LRU) algorithm.
+
+</div>
+
+<div class="decorator">
+
+mru\_cache(user\_function) mru\_cache(maxsize=128, typed=False)
+
+Decorator that wraps a function with a memoizing callable that saves up to <span class="title-ref">maxsize</span> results based on a Most Recently Used (MRU) algorithm.
+
+<div class="deprecated">
+
+5.4
+
+</div>
+
+The <span class="title-ref">mru\_cache</span> decorator has been deprecated due to lack of use. Please choose a decorator based on some other algorithm.
+
+</div>
+
+<div class="decorator">
+
+rr\_cache(user\_function) rr\_cache(maxsize=128, choice=random.choice, typed=False)
+
+Decorator that wraps a function with a memoizing callable that saves up to <span class="title-ref">maxsize</span> results based on a Random Replacement (RR) algorithm.
+
+</div>
+
+<div class="decorator">
+
+ttl\_cache(user\_function) ttl\_cache(maxsize=128, ttl=600, timer=time.monotonic, typed=False)
+
+Decorator to wrap a function with a memoizing callable that saves up to <span class="title-ref">maxsize</span> results based on a Least Recently Used (LRU) algorithm with a per-item time-to-live (TTL) value.
+
+</div>
+
+---
+
+CHANGELOG.rst
+
+---
+
+v5.5.0 (2024-08-18)
+===================
+
+-   `TTLCache.expire()` returns iterable of expired `(key, value)` pairs.
+-   `TLRUCache.expire()` returns iterable of expired `(key, value)` pairs.
+-   Documentation improvements.
+-   Update CI environment.
+
+v5.4.0 (2024-07-15)
+===================
+
+-   Add the `keys.typedmethodkey` decorator.
+-   Deprecate `MRUCache` class.
+-   Deprecate `@func.mru_cache` decorator.
+-   Update CI environment.
+
+v5.3.3 (2024-02-26)
+===================
+
+-   Documentation improvements.
+-   Update CI environment.
+
+v5.3.2 (2023-10-24)
+===================
+
+-   Add support for Python 3.12.
+-   Various documentation improvements.
+
+v5.3.1 (2023-05-27)
+===================
+
+-   Depend on Python \>= 3.7.
+
+v5.3.0 (2023-01-22)
+===================
+
+-   Add `cache_info()` function to `@cached` decorator.
+
+v5.2.1 (2023-01-08)
+===================
+
+-   Add support for Python 3.11.
+-   Correct version information in RTD documentation.
+-   `badges/shields`: Change to GitHub workflow badge routes.
+
+v5.2.0 (2022-05-29)
+===================
+
+-   Add `cachetools.keys.methodkey()`.
+-   Add `cache_clear()` function to decorators.
+-   Add `src` directory to `sys.path` for Sphinx autodoc.
+-   Modernize `func` wrappers.
+
+v5.1.0 (2022-05-15)
+===================
+
+-   Add cache decorator parameters as wrapper function attributes.
+
+v5.0.0 (2021-12-21)
+===================
+
+-   Require Python 3.7 or later (breaking change).
+
+-   Remove deprecated submodules (breaking change).
+
+    The `cache`, `fifo`, `lfu`, `lru`, `mru`, `rr` and `ttl` submodules have been deleted. Therefore, statements like
+
+    `from cachetools.ttl import TTLCache`
+
+    will no longer work. Use
+
+    `from cachetools import TTLCache`
+
+    instead.
+
+-   Pass `self` to `@cachedmethod` key function (breaking change).
+
+    The `key` function passed to the `@cachedmethod` decorator is now called as `key(self, *args, **kwargs)`.
+
+    The default key function has been changed to ignore its first argument, so this should only affect applications using custom key functions with the `@cachedmethod` decorator.
+
+-   Change exact time of expiration in `TTLCache` (breaking change).
+
+    `TTLCache` items now get expired if their expiration time is less than *or equal to* `timer()`. For applications using the default `timer()`, this should be barely noticeable, but it may affect the use of custom timers with larger tick intervals. Note that this also implies that a `TTLCache` with `ttl=0` can no longer hold any items, since they will expire immediately.
+
+-   Change `Cache.__repr__()` format (breaking change).
+
+    String representations of cache instances now use a more compact and efficient format, e.g.
+
+    `LRUCache({1: 1, 2: 2}, maxsize=10, currsize=2)`
+
+-   Add TLRU cache implementation.
+
+-   Documentation improvements.
+
+v4.2.4 (2021-09-30)
+===================
+
+-   Add submodule shims for backward compatibility.
+
+v4.2.3 (2021-09-29)
+===================
+
+-   Add documentation and tests for using `TTLCache` with `datetime`.
+-   Link to typeshed typing stubs.
+-   Flatten package file hierarchy.
+
+v4.2.2 (2021-04-27)
+===================
+
+-   Update build environment.
+-   Remove Python 2 remnants.
+-   Format code with Black.
+
+v4.2.1 (2021-01-24)
+===================
+
+-   Handle `__missing__()` not storing cache items.
+-   Clean up `__missing__()` example.
+
+v4.2.0 (2020-12-10)
+===================
+
+-   Add FIFO cache implementation.
+-   Add MRU cache implementation.
+-   Improve behavior of decorators in case of race conditions.
+-   Improve documentation regarding mutability of caches values and use of key functions with decorators.
+-   Officially support Python 3.9.
+
+v4.1.1 (2020-06-28)
+===================
+
+-   Improve `popitem()` exception context handling.
+-   Replace `float('inf')` with `math.inf`.
+-   Improve \"envkey\" documentation example.
+
+v4.1.0 (2020-04-08)
+===================
+
+-   Support `user_function` with `cachetools.func` decorators (Python 3.8 compatibility).
+-   Support `cache_parameters()` with `cachetools.func` decorators (Python 3.9 compatibility).
+
+v4.0.0 (2019-12-15)
+===================
+
+-   Require Python 3.5 or later.
+
+v3.1.1 (2019-05-23)
+===================
+
+-   Document how to use shared caches with `@cachedmethod`.
+-   Fix pickling/unpickling of cache keys
+
+v3.1.0 (2019-01-29)
+===================
+
+-   Fix Python 3.8 compatibility issue.
+-   Use `time.monotonic` as default timer if available.
+-   Improve documentation regarding thread safety.
+
+v3.0.0 (2018-11-04)
+===================
+
+-   Officially support Python 3.7.
+-   Drop Python 3.3 support (breaking change).
+-   Remove `missing` cache constructor parameter (breaking change).
+-   Remove `self` from `@cachedmethod` key arguments (breaking change).
+-   Add support for `maxsize=None` in `cachetools.func` decorators.
+
+v2.1.0 (2018-05-12)
+===================
+
+-   Deprecate `missing` cache constructor parameter.
+-   Handle overridden `getsizeof()` method in subclasses.
+-   Fix Python 2.7 `RRCache` pickling issues.
+-   Various documentation improvements.
+
+v2.0.1 (2017-08-11)
+===================
+
+-   Officially support Python 3.6.
+-   Move documentation to RTD.
+-   Documentation: Update import paths for key functions (courtesy of slavkoja).
+
+v2.0.0 (2016-10-03)
+===================
+
+-   Drop Python 3.2 support (breaking change).
+-   Drop support for deprecated features (breaking change).
+-   Move key functions to separate package (breaking change).
+-   Accept non-integer `maxsize` in `Cache.__repr__()`.
+
+v1.1.6 (2016-04-01)
+===================
+
+-   Reimplement `LRUCache` and `TTLCache` using `collections.OrderedDict`. Note that this will break pickle compatibility with previous versions.
+-   Fix `TTLCache` not calling `__missing__()` of derived classes.
+-   Handle `ValueError` in `Cache.__missing__()` for consistency with caching decorators.
+-   Improve how `TTLCache` handles expired items.
+-   Use `Counter.most_common()` for `LFUCache.popitem()`.
+
+v1.1.5 (2015-10-25)
+===================
+
+-   Refactor `Cache` base class. Note that this will break pickle compatibility with previous versions.
+-   Clean up `LRUCache` and `TTLCache` implementations.
+
+v1.1.4 (2015-10-24)
+===================
+
+-   Refactor `LRUCache` and `TTLCache` implementations. Note that this will break pickle compatibility with previous versions.
+-   Document pending removal of deprecated features.
+-   Minor documentation improvements.
+
+v1.1.3 (2015-09-15)
+===================
+
+-   Fix pickle tests.
+
+v1.1.2 (2015-09-15)
+===================
+
+-   Fix pickling of large `LRUCache` and `TTLCache` instances.
+
+v1.1.1 (2015-09-07)
+===================
+
+-   Improve key functions.
+-   Improve documentation.
+-   Improve unit test coverage.
+
+v1.1.0 (2015-08-28)
+===================
+
+-   Add `@cached` function decorator.
+-   Add `hashkey` and `typedkey` functions.
+-   Add [key]{.title-ref} and [lock]{.title-ref} arguments to `@cachedmethod`.
+-   Set `__wrapped__` attributes for Python versions \< 3.2.
+-   Move `functools` compatible decorators to `cachetools.func`.
+-   Deprecate `@cachedmethod` [typed]{.title-ref} argument.
+-   Deprecate [cache]{.title-ref} attribute for `@cachedmethod` wrappers.
+-   Deprecate [getsizeof]{.title-ref} and [lock]{.title-ref} arguments for [cachetools.func]{.title-ref} decorator.
+
+v1.0.3 (2015-06-26)
+===================
+
+-   Clear cache statistics when calling `clear_cache()`.
+
+v1.0.2 (2015-06-18)
+===================
+
+-   Allow simple cache instances to be pickled.
+-   Refactor `Cache.getsizeof` and `Cache.missing` default implementation.
+
+v1.0.1 (2015-06-06)
+===================
+
+-   Code cleanup for improved PEP 8 conformance.
+-   Add documentation and unit tests for using `@cachedmethod` with generic mutable mappings.
+-   Improve documentation.
+
+v1.0.0 (2014-12-19)
+===================
+
+-   Provide `RRCache.choice` property.
+-   Improve documentation.
+
+v0.8.2 (2014-12-15)
+===================
+
+-   Use a `NestedTimer` for `TTLCache`.
+
+v0.8.1 (2014-12-07)
+===================
+
+-   Deprecate `Cache.getsize()`.
+
+v0.8.0 (2014-12-03)
+===================
+
+-   Ignore `ValueError` raised on cache insertion in decorators.
+-   Add `Cache.getsize()`.
+-   Add `Cache.__missing__()`.
+-   Feature freeze for [v1.0]{.title-ref}.
+
+v0.7.1 (2014-11-22)
+===================
+
+-   Fix [MANIFEST.in]{.title-ref}.
+
+v0.7.0 (2014-11-12)
+===================
+
+-   Deprecate `TTLCache.ExpiredError`.
+-   Add [choice]{.title-ref} argument to `RRCache` constructor.
+-   Refactor `LFUCache`, `LRUCache` and `TTLCache`.
+-   Use custom `NullContext` implementation for unsynchronized function decorators.
+
+v0.6.0 (2014-10-13)
+===================
+
+-   Raise `TTLCache.ExpiredError` for expired `TTLCache` items.
+-   Support unsynchronized function decorators.
+-   Allow `@cachedmethod.cache()` to return None
+
+v0.5.1 (2014-09-25)
+===================
+
+-   No formatting of `KeyError` arguments.
+-   Update `README.rst`.
+
+v0.5.0 (2014-09-23)
+===================
+
+-   Do not delete expired items in TTLCache.\_\_getitem\_\_().
+-   Add `@ttl_cache` function decorator.
+-   Fix public `getsizeof()` usage.
+
+v0.4.0 (2014-06-16)
+===================
+
+-   Add `TTLCache`.
+-   Add `Cache` base class.
+-   Remove `@cachedmethod` [lock]{.title-ref} parameter.
+
+v0.3.1 (2014-05-07)
+===================
+
+-   Add proper locking for `cache_clear()` and `cache_info()`.
+-   Report [size]{.title-ref} in `cache_info()`.
+
+v0.3.0 (2014-05-06)
+===================
+
+-   Remove `@cache` decorator.
+-   Add `size`, `getsizeof` members.
+-   Add `@cachedmethod` decorator.
+
+v0.2.0 (2014-04-02)
+===================
+
+-   Add `@cache` decorator.
+-   Update documentation.
+
+v0.1.0 (2014-03-27)
+===================
+
+-   Initial release.
+
+
+---
+
+README.rst
+
+---
+
+cachetools
+==========
+
+[![Latest PyPI version](https://img.shields.io/pypi/v/cachetools)](https://pypi.org/project/cachetools/)
+
+[![CI build status](https://img.shields.io/github/actions/workflow/status/tkem/cachetools/ci.yml)](https://github.com/tkem/cachetools/actions/workflows/ci.yml)
+
+[![Documentation build status](https://img.shields.io/readthedocs/cachetools)](https://cachetools.readthedocs.io/)
+
+[![Test coverage](https://img.shields.io/codecov/c/github/tkem/cachetools/master.svg)](https://codecov.io/gh/tkem/cachetools)
+
+[![Libraries.io SourceRank](https://img.shields.io/librariesio/sourcerank/pypi/cachetools)](https://libraries.io/pypi/cachetools)
+
+[![License](https://img.shields.io/github/license/tkem/cachetools)](https://raw.github.com/tkem/cachetools/master/LICENSE)
+
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+This module provides various memoizing collections and decorators, including variants of the Python Standard Library\'s [\@lru\_cache](https://docs.python.org/3/library/functools.html#functools.lru_cache) function decorator.
+
+``` {.python}
+from cachetools import cached, LRUCache, TTLCache
+
+# speed up calculating Fibonacci numbers with dynamic programming
+@cached(cache={})
+def fib(n):
+    return n if n < 2 else fib(n - 1) + fib(n - 2)
+
+# cache least recently used Python Enhancement Proposals
+@cached(cache=LRUCache(maxsize=32))
+def get_pep(num):
+    url = 'http://www.python.org/dev/peps/pep-%04d/' % num
+    with urllib.request.urlopen(url) as s:
+        return s.read()
+
+# cache weather data for no longer than ten minutes
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
+def get_weather(place):
+    return owm.weather_at_place(place).get_weather()
+```
+
+For the purpose of this module, a *cache* is a [mutable](https://docs.python.org/dev/glossary.html#term-mutable) [mapping](https://docs.python.org/dev/glossary.html#term-mapping) of a fixed maximum size. When the cache is full, i.e. by adding another item the cache would exceed its maximum size, the cache must choose which item(s) to discard based on a suitable [cache algorithm](https://en.wikipedia.org/wiki/Cache_algorithms).
+
+This module provides multiple cache classes based on different cache algorithms, as well as decorators for easily memoizing function and method calls.
+
+Installation
+------------
+
+cachetools is available from [PyPI](https://pypi.org/project/cachetools/) and can be installed by running:
+
+    pip install cachetools
+
+Typing stubs for this package are provided by [typeshed](https://github.com/python/typeshed/) and can be installed by running:
+
+    pip install types-cachetools
+
+Project Resources
+-----------------
+
+-   [Documentation](https://cachetools.readthedocs.io/)
+-   [Issue tracker](https://github.com/tkem/cachetools/issues/)
+-   [Source code](https://github.com/tkem/cachetools/)
+-   [Change log](https://github.com/tkem/cachetools/blob/master/CHANGELOG.rst)
+
+Related Projects
+----------------
+
+-   [asyncache](https://pypi.org/project/asyncache/): Helpers to use cachetools with async functions
+-   [cacheing](https://github.com/breid48/cacheing): Pure Python Cacheing Library
+-   [CacheToolsUtils](https://pypi.org/project/CacheToolsUtils/): Cachetools Utilities
+-   [kids.cache](https://pypi.org/project/kids.cache/): Kids caching library
+-   [shelved-cache](https://pypi.org/project/shelved-cache/): Persistent cache for Python cachetools
+
+License
+-------
+
+Copyright (c) 2014-2024 Thomas Kemmer.
+
+Licensed under the [MIT License](https://raw.github.com/tkem/cachetools/master/LICENSE).

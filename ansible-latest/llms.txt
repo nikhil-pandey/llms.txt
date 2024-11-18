@@ -1,0 +1,835 @@
+CONVENTIONS.md
+
+---
+
+# Conventions
+
+- The docs in this directory should be written in Markdown.
+- The docs in this directory should follow the [Semantic Line Breaks][1] standard.
+- The docs in this directory should follow the [Ansible documentation style guide][2]
+  when applicable.
+- The docs in this directory should use `Title Case` for page headings and
+  `Sentence case` for subheadings.
+- Make sure to add new docs to the `nav:` config in `mkdocs.yml`.
+
+[1]: https://sembr.org/
+[2]: https://docs.ansible.com/ansible/latest/dev_guide/style_guide/basic_rules.html
+
+
+---
+
+README.md
+
+---
+
+# ansible-build-data
+
+[![Discuss on Matrix at #community:ansible.com](https://img.shields.io/matrix/community:ansible.com.svg?server_fqdn=ansible-accounts.ems.host&label=Discuss%20on%20Matrix%20at%20%23community:ansible.com&logo=matrix)](https://matrix.to/#/#community:ansible.com)
+
+Holds generated but persistent results from building the `ansible` community package.  This information
+may be referred to by other projects and scripts.
+
+## Issue tracker
+
+[This repository's issue tracker](https://github.com/ansible-community/ansible-build-data/issues) handles various aspects of the `ansible` build, including:
+
+1. Tracking release dates,
+1. Tracking blockers for a release,
+1. Tracking adding, renaming, and removing collections,
+1. Tracking problems with a release related to the build process:
+   - This includes problems that prevent the package to be installed or system packages to be built from the PyPI release;
+1. Tracking and discussing other problems with the `ansible` community package:
+   - This includes important problems with the included collections that are not acted on by the collection maintainers, for example largescale incompatibilities with the current ansible-core version, violations of semantic versioning, and general violations of the [Ansible inclusion requirements](https://docs.ansible.com/ansible/devel/community/collection_contributors/collection_requirements.html);
+   - This includes major or security bugs in collections with wide-reaching consequences that are not addressed by the collection maintainers, or cannot be addressed on the collection level for some reason.
+
+This issue tracker is **not** for tracking regular bugs or feature requests for `ansible-core` or the collections included in the `ansible` package or for user support. **Such issues will be closed.** Instead, check out the [`ansible-core` issue tracker](https://github.com/ansible/ansible), issue trackers of the respective collections, or consider [asking for help in the Ansible forum](https://forum.ansible.com/).
+
+## Milestones
+
+Release engineers check the [milestones](https://github.com/ansible-community/ansible-build-data/milestones) for corresponding releases some time before releasing the package sufficient to solve all related issues.
+
+## Blockers
+
+In the context of the Ansible Community package release workflow, a **release blocker** is a situation which does not allow the package to be released.
+It might come with a new ``ansible-core`` release and affect many of the included collections or in any other way might severely affect consistent work with the ``ansible`` package.
+Severity of the impact is determined by the [Steering Committee](https://docs.ansible.com/ansible/devel/community/steering/community_steering_committee.html) in each particular case.
+The release blocker must be resolved before the release can proceed.
+
+In case of a potential release blocker, the following actions need to be done:
+
+* Create a [community topic](https://github.com/ansible-community/community-topics/issues) describing the potential blocker.
+* If the [Steering Committee](https://docs.ansible.com/ansible/devel/community/steering/community_steering_committee.html) considers the circumstances a release blocker, create an [issue](https://github.com/ansible-community/ansible-build-data/issues/new) in this repository.
+* Put the ``blocker`` label on the issue.
+* Add the issue to a milestone for the [affected release](https://github.com/ansible-community/ansible-build-data/milestones).
+
+## Structure of data
+
+::
+
+    ansible-build-data
+    └── 3
+        ├── ansible-3.0.0.deps
+        ├── ansible-3.1.0.deps
+        ├── ansible-3.build
+        └── ansible.in
+
+* Each major release of Ansible gets a subdirectory of the repository named
+  according to the X.Y version number of Ansible.  (ex: `3`)
+
+* Within each version directory, there is an `ansible.in` file which lists the
+  collections that are in this release of Ansible.  The file consists of one
+  `namespace.collection` per line.  This file is constructed by the person
+  building Ansible for that release.
+
+* There will also be a file, `ansible-X.build`.  This file contains lines which
+  consist of `namespace.collection` followed by a version range like::
+
+      awx.awx: >=11.0.0,<12.0.0
+
+  The version range specifies potential versions of the collection that are
+  backwards compatible with what was available when the initial Ansible-X.Y.0
+  release was frozen.  Only versions of the collections within those ranges
+  will be considered for Ansible minor releases.  This file will be created by the
+  `antsibull-build new-ansible` command.
+
+* Lastly, there will be multiple, `ansible-X.Y.Z.deps` files.  Those files contain
+  lines which consist of `namespace.collection` followed by a single version like::
+
+      awx.awx: 11.2.5
+
+  The version specifies the exact version of the collection that appeared in that
+  release of Ansible.  This file will be created by the `antsibull-build single`
+  command.
+
+## Linting
+
+To lint the files in this repository, run `nox -e lint`. This assumes you have `nox` installed.
+
+## Adding a new collection
+
+### Next Ansible major release
+
+To add a collection to the next Ansible major release that has not reached feature freeze:
+
+* Add the collection to the `ansible.in` file in a sub-directory named with a
+  corresponding number.
+* In the same sub-directory, add the collection to the `collection-meta.yaml`
+  file, as shown below.
+  - `maintainers` (list): The Github usernames of the collection's maintainers.
+  - `repository` (string): The URL of the collection's git repository.
+  - `collection-directory` (string): The collection's top level directory
+    relative to the Git repository root. The top level directory is where
+    `galaxy.yml` is located. For most collections, this should be set to `.`.
+    However, some collections, such as `awx.awx`, store the collection in a
+    subdirectory. In that case, `collection-directory` should be set to
+    `./SUBDIRECTORY` (`SUBDIRECTORY` is a placeholder for the actual
+    directory).
+  - `changelog-url` (string): If the collection does not provide a changelog in
+    `changelogs/changelog.yaml`, the URL to the actual changelog needs to be
+    added. Otherwise, this field should be omitted.
+
+``` yaml
+collections:
+  # NAMESPACE.NAME
+  community.example:
+    # The Github usernames of this collection's maintainers
+    maintainers:
+      - person1
+      - person2
+    # The URL to the collection's SCM repository.
+    repository: https://github.com/ansible-collections/community.example
+    # This is the directory where galaxy.yml is stored relative to the
+    # repository root.
+    #
+    # For collections stored in the repository root:
+    collection-directory: "."
+    # For collections stored in a subdirectory:
+    collection-directory: "./SUBDIRECTORY"
+    # This is an optional field that should only be populated if the collection
+    # doesn't include a changelogs/changelog.yaml file.
+    # changelog-url: ...
+```
+
+### The current Ansible major release
+
+To add a collection to the next minor release of the current Ansible major version:
+
+* Add the collection to the `ansible.in` file in a sub-directory named with a corresponding number.
+* In the same sub-directory, add the collection and its version range to the `ansible-X.build` file.
+* In the same sub-directory, add the collection to the `collection-meta.yaml` file.
+  - The maintainer's GitHub user names need to be listed there.
+  - If the collection does not provide a changelog in `changelogs/changelog.yaml`, the URL to the actual changelog needs to be added.
+
+## Renaming a collection
+
+In some situations, a collection included in Ansible is renamed with its content basically unchanged (up to renaming, adjusting documentation, and potentially other very small changes). In that case, the new collection can be included and the old collection removed if the following procedure is followed.
+
+For simplicity, assume that the next minor Ansible release is X.Y.0, and that collection `foo.bar` with latest release a.b.c has been renamed to `baz.bam` with latest release A.B.C.
+
+1. `baz.bam` A.B.C must be compatible to `foo.bar` a.b.c up to renaming plugins. No options must be renamed without backwards compatible aliases, and no defaults or semantics changed.
+2. `baz.bam` A.B.C can be added to Ansible X.Y.0.
+3. A deprecation warning is added to Ansible X.Y.0's changelog (`deprecated_features`) that `foo.bar` has been renamed to `baz.bam`, that Ansible (X+1).0.0 will start having deprecated redirects from `foo.bar` to `baz.bam`, and that `foo.bar` will be removed from a later major release of Ansible.
+4. A new release `foo.bar` (a+1).0.0 is made which contains no more content, but only deprecated redirects to `baz.bam`. Ideally it will have a dependency on `baz.bam` so that users that install `foo.bar` will have working deprecated redirects.
+5. Ansible (X+1).0.0 contains both `foo.bar` (a+1).0.0, and either a `baz.bam` A.B'.C' release or a later major release that is still compatible with `foo.bar` a.b.c as specified in 1.
+6. `foo.bar` will be dropped from Ansible (X+2).0.0 (needs to be announced in its changelog as `removed_features`).
+
+
+---
+
+automated-process.md
+
+---
+
+# How to release a new version of the Ansible Community Package — Automated Release Process
+
+## Preamble
+
+This document describes the (mostly) automated ansible community package
+release process. The automated processes uses GitHub Actions to automate the
+[manual release process](release-process.md).
+
+!!! note
+    Throughout this page, placeholder values in code blocks are formatted as
+    `${PLACEHOLDER_VALUE}` where `PLACEHOLDER_VALUE` describes the value to
+    specify.
+
+
+## Trigger the workflow
+
+1. Trigger [the automated
+   workflow](https://github.com/ansible-community/ansible-build-data/actions/workflows/ansible-release.yml)
+   on the **Actions** tab of the repository. This workflow has multiple inputs.
+   The most important is the release version, such as `11.2.0` or `12.0.0rc1`.
+   This always has to be specified.
+
+    The following additional inputs are required for special releases. Generally
+    you do not need to pass them and can rely on their defaults. Cases where you
+    need these inputs are described in the [Special builds](#special-builds)
+    section below.
+
+    * You can optionally decide whether to preserve existing `.deps` files.
+      The default is to regenerate them.
+    * You can optionally decide whether the `.build` file should be regenerated
+      during alpha and beta-1 releases.
+    * You can also specify an existing branch in the [`ansible-build-data`
+      repository](https://github.com/ansible-community/ansible-build-data/) to
+      create the PR on.
+
+    The process will create a PR in the [`ansible-build-data`
+    repository](https://github.com/ansible-community/ansible-build-data/).
+    Afterwards, it will wait for approval before continuing with uploading the
+    package to PyPI. All users in the [ansible-community/release-management-wg
+    group](https://github.com/orgs/ansible-community/teams/release-management-wg)[^1]
+    will be informed with a notification once the approval is needed.
+    The notification includes a link to the page where the upload step can be
+    approved.
+
+2. Check out the PR in your `ansible-build-data` clone and copy the updated
+   porting guide from its `${MAJOR_VERSION}` directory into the
+   [`docs/docsite/rst/porting_guides/`](https://github.com/ansible/ansible-documentation/tree/devel/docs/docsite/rst/porting_guides/)
+   directory of the [`ansible-documentation`
+   repository](https://github.com/ansible/ansible-documentation/). Create a
+   PR for updating the porting guide for the `devel` branch of
+   `ansible-documentation`.
+
+3. After both PRs (in `ansible-build-data` and `ansible-documentation`) are
+   approved, merge the `ansible-build-data` PR and approve the next workflow
+   step (**in this order!** the next steps of the workflow require the PR to be
+   merged!). This will upload the package to PyPI and tag the release in
+   `ansible-build-data`.
+
+4. Merge the porting guide PR, and backport it to the latest `stable-x`
+   branches down to the ansible-core version that is included in the Ansible
+   release.
+
+5. Make sure that you have installed [`antsibull-build`](https://pypi.org/project/antsibull-build/)
+   and a supported clipboard library. You can do that like this:
+
+    ```
+    pip install antsibull-build[clipboard]
+    ```
+
+6. Then announce the release on the Forum and Matrix by
+   running the following command in the `${MAJOR_VERSION}` directory of the
+   `ansible-build-data` checkout:
+
+    ```
+    antsibull-build announcements --send --data-dir . ${VERSION} [ --end-of-life ]
+    ```
+
+    The `--end-of-life` flag should be added if this is the final release for the
+    `${MAJOR_VERSION}` major release train.
+
+    This will open your default browser to do the announcement on the forum.
+    It will also tell you where to announce this on Matrix,
+    ask for the URL of the forum thread,
+    and create a suitable text in your clipboard that you can copy to Matrix.
+
+[^1]: This group is configured as "Required reviewers" for the "Configure pypi"
+      build environment in GitHub Actions of the `ansible-build-data` repository.
+
+## Special builds
+
+### Builds with a specific release summary other than the default one
+
+Sometimes you want to use a different release summary than the default one.
+For example for the Ansible 9.5.1 release, we included some text that explained
+why the release has version 9.5.1 and not 9.5.0.
+
+For this, create a new branch in `ansible-build-data`. Add a `release_summary`
+changelog entry for the new release to the `changelog.yaml` file in the major
+version's directory. Make sure to follow the same basic structure of the version's
+record in `changelog.yaml`. This can look as follows:
+```yaml
+releases:
+  ...
+  12.3.4:
+    changes:
+      release_summary: |
+        Release Date: 2024-05-14
+
+        Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`_
+
+        This is a special release because of ...
+```
+
+After that, you can start the automated workflow. You need to set the following option
+next to the release version:
+
+1. Set `existing-branch` to the branch you pushed to the `ansible-build-data`
+   repository.
+
+### Additional release candidates (rc2 etc.)
+
+For these release candidates, you only want to bump very specific collection
+versions, and not use new bugfix releases of potentially all included collections.
+
+For this, create a new branch in `ansible-build-data` where you copy the `.deps`
+file of the previous release candidate to the location of the `.deps` file of the
+planned release. Then you modify the new `.deps` file with the version updates
+you plan to make and update `_ansible_version`.
+
+After that, you can start the automated workflow. You need to set the following options
+next to the release version:
+
+1. Set `preserve-deps` to `true`;
+
+2. Set `existing-branch` to the branch you pushed to the `ansible-build-data`
+   repository.
+
+### New major release (x.0.0)
+
+The new major release should include exactly the same dependencies as the last
+release candidate.
+
+For this, create a new branch in `ansible-build-data` where you copy the `.deps`
+file of the last release candidate to the location of the `.deps` file of the
+planned major release. Update `_ansible_version` in the new `.deps` file, but don't
+change it in any other way.
+
+After that, you can start the automated workflow. You need to set the following options
+next to the release version:
+
+1. Set `preserve-deps` to `true`;
+
+2. Set `existing-branch` to the branch you pushed to the `ansible-build-data`
+   repository.
+
+When the new major release has been done, remember to prepare the directory for
+the next major Ansible release. How to do this is described in [Setting up for a
+new major release](new-ansible-and-freezes.md#setting-up-for-a-new-major-release).
+
+
+---
+
+docs-requirements.txt
+
+---
+
+mkdocs
+mkdocs-ansible
+
+
+---
+
+new-ansible-and-freezes.md
+
+---
+
+# New Ansible Releases and Freezes
+
+## Preamble
+
+Releasing new Ansible major versions and frozen releases requires some special
+handling.
+For information about the general release process,
+see [Ansible Release Process](release-process.md).
+
+## Setting up for a new major release
+
+<!-- TODO: Write a script, playbook, or antsibull-build subcommand to automate this -->
+
+After the release of `X.0.0`, it is necessary to create the directory
+structure for Ansible `X+1`.
+
+1. Determine the current major version and next major version
+
+    ``` sh
+    CURRENT_MAJOR_VERSION=9
+    NEXT_MAJOR_VERSION=10
+    ```
+
+2. Create the major version directory
+
+    ``` sh
+    mkdir "${NEXT_MAJOR_VERSION}/"
+    ```
+
+3. Copy over the `ansible.in` and `collection-meta.yaml` files
+
+    ``` sh
+    cp "${CURRENT_MAJOR_VERSION}/ansible.in" "${CURRENT_MAJOR_VERSION}/collection-meta.yaml" \
+       "${NEXT_MAJOR_VERSION}/"
+    ```
+
+4. Symlink `${CURRENT_MAJOR_VERSION}.0.0`'s deps file to
+   `${NEXT_MAJOR_VERSION}/ancestor.deps`
+
+    ``` sh
+    ln -sr "${CURRENT_MAJOR_VERSION}/ansible-${CURRENT_MAJOR_VERSION}.0.0.deps" \
+       "${NEXT_MAJOR_VERSION}/ancestor.deps"
+    ```
+
+5. Create a stub `changelog.yaml` file
+
+    ``` sh
+    cat <<EOF >${NEXT_MAJOR_VERSION}/changelog.yaml
+    ---
+    ancestor: ${CURRENT_MAJOR_VERSION}.0.0
+    releases: {}
+    EOF
+    ```
+
+6. Create a blank `validate-tags-ignores` file
+
+    ``` sh
+    touch "${NEXT_MAJOR_VERSION}/validate-tags-ignores"
+    ```
+
+7. Create a blank `ansible-${NEXT_MAJOR_VERSION}.constraints` file
+
+    ``` sh
+    touch "${NEXT_MAJOR_VERSION}/ansible-${NEXT_MAJOR_VERSION}.constraints"
+    ```
+
+    You might need to fill this with some initial data.
+
+8. Add the next major version to ansible-build-data's CI
+
+    Open `.github/workflows/antsibull-build.yml` and the following block to the
+    matrix:
+
+    ``` yaml
+    - name: Ansible ${NEXT_MAJOR_VERSION}
+      ansible_version: ${NEXT_MAJOR_VERSION}.99.0
+      ansible_major_version: ${NEXT_MAJOR_VERSION}
+    ```
+
+9. Commit the changes
+
+    ``` sh
+    git add "${NEXT_MAJOR_VERSION}" .github/workflows/antsibull-build.yml
+    ```
+
+10. Submit a PR against ansible-build-data
+
+
+## Freeze release
+
+<!--
+TODO: Improve the release playbook to support this case without requiring extra steps.
+-->
+
+Beyond the regular [Ansible Release Process](release-process.md), X.Y.0
+releases require special handling before running the release playbook.
+
+!!! note
+    This can be done in a simpler fashion when using the [automated release
+    process](automated-process.md). See the regular automated workflow for
+    versions up to rc1, and the [Special builds](automated-process.md#special-builds)
+    section for further release candidates and for the final major release.
+
+1. Determine the previous and the current releases
+
+    ``` sh
+    MAJOR_VERSION=9
+    VERSION=9.0.0
+    PREVIOUS_VERSION=9.0.0rc1
+    ```
+
+2. Set up your Git clones and release venv as outlined in the [Ansible Release Process](release-process.md) document.
+
+3. Copy over the previous release's deps and galaxy files.
+
+    ``` sh
+    cp "ansible-${PREVIOUS_VERSION}.yaml" "ansible-${VERSION}.yaml"
+    cp "ansible-${PREVIOUS_VERSION}.deps" "ansible-${VERSION}.deps"
+    ```
+
+4. Edit the current ansible version in the deps file
+
+    ``` sh
+    sed -i "s|^_ansible_version:.*$|_ansible_version: ${VERSION}|" \
+       "ansible-${VERSION}.deps"
+    ```
+
+5. Add a changelog entry for the new release
+
+    Open `${MAJOR_VERSION}/changelog.yaml` and the following block to the
+    releases table:
+
+    ``` yaml
+      ${VERSION}:
+        changes:
+          release_summary: 'Release Date: ${RELEASE_DATE}
+
+
+            `Porting Guide <https://docs.ansible.com/ansible/devel/porting_guides.html>`_'
+        release_date: '${RELEASE_DATE}'
+    ```
+
+    The release date should be formatted as `YYYY-MM-DD`.
+
+6. Manually update specific collection versions if needed.
+
+    In some cases, it may be necessary to update certain collections if, for
+    example, a serious bug is found is one of the collections.
+    In that case, open up the deps and galaxy files copied over in the step 2
+    and change the versions for the collections in question.
+    Make sure that the versions in both files are consistent.
+
+7. Generate the tags data file
+
+    ``` sh
+    antsibull-build validate-tags \
+        --data-dir . \
+        --ignores-file validate-tags-ignores \
+        --output "ansible-${VERSION}-tags.yaml" \
+        "${VERSION}"
+    ```
+
+8. Run the the release playbook as outlined in [Ansible Release Process](release-process.md).
+   Make sure to use pass `-e antsibull_data_reset=false` to preserve the
+   ansible-build-data modifications.
+
+
+---
+
+policies.md
+
+---
+
+# Ansible Collection Policies
+
+This doc explains the necessary ansible-build-data changes to enforce
+Ansible Community Steering Committee Policies such as [Removal from Ansible][1]
+and [Repository management][2].
+
+## Removal from Ansible
+
+TODO
+
+## Repository management
+
+### Background
+
+From ansible 7.2.0 onwards, each release contains a `ansible-VERSION-tags.yaml`
+data file in this repository.
+This file contains a mapping of collections to their git repositories and the
+git tag that corresponds to the version of a collection included in the ansible release.
+
+The [Ansible release playbook][3] generates this tags data file during the
+`antsibull-build prepare` step and later runs
+the `antsibull-build validate-tags-file` command to validate it.
+
+It is also possible to separately run `antsibull-build validate-tags-file`.
+For example, to validate [the tags file for ansible 7.5.0][4], run
+
+``` console
+$ antsibull-build validate-tags-file 7/ansible-7.5.0-tags.yaml
+cisco.nso 1.0.3 is not tagged in https://github.com/CiscoDevNet/ansible-nso
+hpe.nimble 1.1.4 is not tagged in https://github.com/hpe-storage/nimble-ansible-modules
+mellanox.onyx 1.0.0 is not tagged in https://github.com/ansible-collections/mellanox.onyx
+$ echo $?
+1
+```
+
+Since these collections were not properly tagged prior to this policy's
+formalization, they are listed in [`7/validate-tags-ignores`][4a].
+The release playbook passes that file to
+`antsibull-build validate-tags-file`'s `--ignores-file` flag to ignore errors
+for those collections.
+
+``` console
+$ antsibull-build validate-tags-file --ignores-file 7/validate-tags-ignores 7/ansible-7.5.0-tags.yaml
+(no output)
+$ echo $?
+0
+```
+
+When building future ansible versions, any untagged collections will cause
+`ansible-build validate-tags-file` to fail.
+
+### Enforcement
+
+Prior to ansible 9.0.0a1,
+the release playbook treats validation errors as warnings.
+In ansible 9.0.0a1 and onwards,
+these validation errors constitute release blockers.
+The playbook will fail if any new collection releases are not properly tagged.
+
+> **Note**
+>
+> It is recommended to run the release playbook with
+> [`ANSIBLE_CALLBACK_RESULT_FORMAT=yaml`][5] so error messages and any other
+> playbook output are more legible.
+
+
+In case of violations, the release manager must preform the following steps:
+
+1. First, the collection must be restricted to the previous tagged release in
+   the `ansible-VERSION.constraints` file.
+
+    Take the `community.docker` collection as an example. If its version 3.9.0
+    was released and correctly tagged, and 3.9.1 was released but not correctly
+    tagged, add
+
+    ```
+    community.docker: <3.9.1
+    ```
+
+2. Commit only the changed `ansible-VERSION.constraints` file:
+
+    ```
+    git add 8/ansible-8.constraints
+    git commit -m "pin community.docker to previous release"
+    ```
+
+3. Rerun the release playbook.
+   In this example, the ansible distribution will be built with
+   community.docker 3.9.0 even though community.docker 3.9.1 is the latest
+   version.
+
+4. Proceed with the rest of the release process as normal.
+   Commit the other changed files.
+   The collection release PR should be applied using the `Rebase and merge`
+   option (as opposed to `Squash and merge`) so the first commit can be more
+   easily reverted when/if the collection fixes the issue.
+
+5. The release manager or another community member needs to file an issue in
+   the violating collection's issue tracker.
+   This part should not block the current ansible package release,
+   but the issue must have been filed before the following minor release.
+   The following issue template can be used:
+
+    ``` markdown
+    Hi! As part of the ansible community package release process, we've determined that version {VERSION} of {COLLECTION} was released to Ansible Galaxy but not properly tagged in this Git repository.
+    This violates the [repository management][1] section of the Collection Requirements:
+
+    [1]: https://docs.ansible.com/ansible/devel/community/collection_contributors/collection_requirements.html#repository-management
+
+    > Every collection MUST have a public git repository. Releases of the collection MUST be tagged in said repository. This means that releases MUST be `git tag`ed and that the tag name MUST exactly match the Galaxy version number. Tag names MAY have a `v` prefix, but a collection's tag names MUST have a consistent format from release to release.
+    >
+    > Additionally, collection artifacts released to Galaxy MUST be built from the sources that are tagged in the collection's git repository as that release. Any changes made during the build process MUST be clearly documented so the collection artifact can be reproduced.
+
+    Until this issue is fixed, ansible package releases will contain {OLD VERSION}, the previous version of this collection that was properly tagged. If the collection maintainers do not respond to this issue within a reasonable amount of time, the collection is subject to [Removal from ansible][2].
+
+    [2]: https://github.com/ansible-collections/overview/blob/main/removal_from_ansible.rst#collections-not-satisfying-the-collection-requirements
+
+    ```
+
+6. Post a comment in <https://github.com/ansible-community/ansible-build-data/issues/223>
+   with a link to the issue.
+
+
+[1]: https://github.com/ansible-collections/overview/blob/main/removal_from_ansible.rst
+[2]: https://docs.ansible.com/ansible/devel/community/collection_contributors/collection_requirements.html#repository-management
+[3]: https://github.com/ansible-community/antsibull-build/blob/main/playbooks/build-single-release.yaml
+[4]: https://github.com/ansible-community/ansible-build-data/blob/main/7/ansible-7.5.0-tags.yaml
+[4a]: https://github.com/ansible-community/ansible-build-data/blob/main/7/validate-tags-ignores
+[5]: https://docs.ansible.com/ansible/latest/collections/ansible/builtin/default_callback.html#parameter-result_format
+
+
+---
+
+release-process.md
+
+---
+
+# How to release a new version of the Ansible Community Package — Manual Release Process
+
+## Preamble
+
+This document describes the "manual" ansible community package release process.
+There exists an [automated version of this process](automated-process.md) using
+GitHub Actions.
+
+!!! note
+    Throughout this page, placeholder values in code blocks are formatted as
+    `${PLACEHOLDER_VALUE}` where `PLACEHOLDER_VALUE` describes the value to fill in.
+
+
+## Set up container
+
+Release managers may choose to preform the following steps inside a podman or
+docker container created from the [`docker.io/library/python:3.10`][container]
+image.
+Make sure to mount your working directory as a volume so you don't have to set
+up new repository clones every time.
+
+```
+podman run --name ansible-release -v ${PERSISTENT_DIRECTORY}:/pwd:z -w /pwd -ti docker.io/library/python:3.10 bash
+```
+
+
+## Set up repository clones
+
+First, you need to set up ansible-build-data and antsibull-build repository clones.
+This only needs to be done once.
+
+1. [Fork][abd-fork] the [ansible-build-data] repository.
+
+2. Checkout the antsibull-build and ansible-documentation repositories
+   and change into antsibull-build.
+
+    ```
+    git clone https://github.com/ansible/ansible-documentation
+    git clone https://github.com/ansible-community/antsibull-build
+    cd antsibull-build
+    ```
+
+3. Checkout ansible-build-data and configure your fork.
+
+    To checkout the repository run
+
+    ```
+    mkdir build
+    cd build
+    git clone https://github.com/ansible-community/ansible-build-data
+    cd ansible-build-data
+    ```
+
+    Then, configure your fork.
+    This guide uses your Github username as the fork remote name.
+
+    ```
+    git remote add ${GH_USERNAME} https://github.com/${GH_USERNAME}/ansible-build-data
+    git fetch ${GH_USERNAME} -v
+    ```
+
+## Perform release process
+
+1. Change into the antsibull-build checkout.
+   Make sure you have the `main` branch checked out
+   and run `git pull` to update to the latest commit.
+
+2. Create a clean virtual environment for the release process.
+
+    ```
+    rm -rf release-venv
+    python3 -m venv release-venv
+    . ./release-venv/bin/activate
+    python3 -m pip install -U pip
+    ```
+
+    Install the `antsibull-build`, `ansible-core`, and `twine` python packages,
+    as well as the community.general collection.
+
+    ```
+    python3 -m pip install antsibull-build ansible-core twine
+    ansible-galaxy collection install --force community.general
+    ```
+
+3. Run the [ansible release playbook][release-playbook]
+   with the appropriate options.
+   You can see the [argument spec][release-playbook-args]
+   for a full breakdown, but this describes the basic usage.
+
+    ```
+    export ANSIBLE_CALLBACK_RESULT_FORMAT=yaml
+    ansible-playbook playbooks/build-single-release.yaml -e antsibull_ansible_version=${VERSION}
+    ```
+
+    !!! note
+        When building ansible versions greater than 9.0.0a1,
+        `Validate tags file` task failures will fail the release playbook
+        instead of warning and moving on.
+        See [policies.md][tagging-enforcement] for how to proceed if this step
+        fails.
+
+4. Commit the changes and push them to your fork.
+
+    You can run the following commands to do so
+
+    ```
+    cd build/ansible-build-data
+    git switch -c release-${VERSION}
+    git add ${MAJOR_VERSION}/
+    git commit -m "Ansible ${VERSION}: Dependencies, changelog and porting guide"
+    git push -u ${GH_USERNAME} release-${VERSION}
+    ```
+
+    Then, submit a pull request against ansible-build-data upstream.
+
+5. Submit a PR to ansible/ansible-documentation to add the new porting guide to
+   the docsite. Copy the porting guide to the ansible docsite directory in your
+   ansible checkout with the following command
+
+    ```
+    cp ${MAJOR_VERSION}/porting_guide_${MAJOR_VERSION}.rst ../ansible-documentation/docs/docsite/rst/porting_guides/
+    ```
+
+    switch to the ansible checkout,
+    commit and push the changes,
+    and then submit a PR as you normally would.
+    You can use `Add Ansible community ${VERSION} porting guide` as the commit message.
+
+6. Once the ansible-build-data PR has been merged,
+   publish the build artifacts to PyPI.
+   From the antsibull-build repository root, run
+
+    ```
+    twine upload build/ansible-${VERSION}.tar.gz build/ansible-${VERSION}*.whl
+    ```
+
+7. Tag the release commit in the ansible-build-data repository.
+
+    ```
+    cd build/ansible-build-data
+    git switch main
+    git pull
+    git tag ${VERSION} ${MERGED_PR_COMMIT_HASH} -a -m "Ansible ${VERSION}: Changelog, Porting Guide and Dependent Collection Details"
+    git push --follow-tags
+    ```
+
+8. Announce the release on the Forum and Matrix by running
+   the following command in the `${MAJOR_VERSION}` directory of the
+   `ansible-build-data` checkout:
+    ```
+    antsibull-build announcements --send --data-dir . ${VERSION} [ --end-of-life ]
+    ```
+
+    The `--end-of-life` flag should be added if this is the final release for the
+    `${MAJOR_VERSION}` major release train.
+
+    This will open your default browser to do the announcement on the forum.
+    It will also tell you where to announce this on Matrix,
+    ask for the URL of the forum thread,
+    and create a suitable text in your clipboard that you can copy to Matrix.
+
+[container]: https://hub.docker.com/_/python
+[abd-fork]: https://github.com/ansible-community/ansible-build-data/fork
+[ansible-build-data]: https://github.com/ansible-community/ansible-build-data
+[release-playbook]: https://github.com/ansible-community/antsibull-build/blob/main/playbooks/build-single-release.yaml
+[release-playbook-args]: https://github.com/ansible-community/antsibull-build/blob/main/roles/build-release/meta/argument_specs.yml
+[tagging-enforcement]: https://github.com/gotmax23/ansible-build-data/blob/docs/docs/policies.md#enforcement

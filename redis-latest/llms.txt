@@ -1,0 +1,1536 @@
+advanced_features.md
+
+---
+
+# Advanced Features
+
+## A note about threading
+
+Redis client instances can safely be shared between threads. Internally, connection instances are only retrieved from the connection pool during command execution, and returned to the pool directly after. Command execution never modifies state on the client instance.
+
+However, there is one caveat: the Redis SELECT command. The SELECT command allows you to switch the database currently in use by the connection. That database remains selected until another is selected or until the connection is closed. This creates an issue in that connections could be returned to the pool that are connected to a different database.
+
+As a result, redis-py does not implement the SELECT command on client instances. If you use multiple Redis databases within the same application, you should create a separate client instance (and possibly a separate connection pool) for each database.
+
+It is not safe to pass PubSub or Pipeline objects between threads.
+
+## Pipelines
+
+### Default pipelines
+
+Pipelines are a subclass of the base Redis class that provide support for buffering multiple commands to the server in a single request. They can be used to dramatically increase the performance of groups of commands by reducing the number of back-and-forth TCP packets between the client and server.
+
+Pipelines are quite simple to use:
+
+``` python
+>>> r = redis.Redis(...)
+>>> r.set('bing', 'baz')
+>>> # Use the pipeline() method to create a pipeline instance
+>>> pipe = r.pipeline()
+>>> # The following SET commands are buffered
+>>> pipe.set('foo', 'bar')
+>>> pipe.get('bing')
+>>> # the EXECUTE call sends all buffered commands to the server, returning
+>>> # a list of responses, one for each command.
+>>> pipe.execute()
+[True, b'baz']
+```
+
+For ease of use, all commands being buffered into the pipeline return the pipeline object itself. Therefore calls can be chained like:
+
+``` python
+>>> pipe.set('foo', 'bar').sadd('faz', 'baz').incr('auto_number').execute()
+[True, True, 6]
+```
+
+In addition, pipelines can also ensure the buffered commands are executed atomically as a group. This happens by default. If you want to disable the atomic nature of a pipeline but still want to buffer commands, you can turn off transactions.
+
+``` python
+>>> pipe = r.pipeline(transaction=False)
+```
+
+A common issue occurs when requiring atomic transactions but needing to retrieve values in Redis prior for use within the transaction. For instance, let's assume that the INCR command didn't exist and we need to build an atomic version of INCR in Python.
+
+The completely naive implementation could GET the value, increment it in Python, and SET the new value back. However, this is not atomic because multiple clients could be doing this at the same time, each getting the same value from GET.
+
+Enter the WATCH command. WATCH provides the ability to monitor one or more keys prior to starting a transaction. If any of those keys change prior the execution of that transaction, the entire transaction will be canceled and a WatchError will be raised. To implement our own client-side INCR command, we could do something like this:
+
+``` python
+>>> with r.pipeline() as pipe:
+...     while True:
+...         try:
+...             # put a WATCH on the key that holds our sequence value
+...             pipe.watch('OUR-SEQUENCE-KEY')
+...             # after WATCHing, the pipeline is put into immediate execution
+...             # mode until we tell it to start buffering commands again.
+...             # this allows us to get the current value of our sequence
+...             current_value = pipe.get('OUR-SEQUENCE-KEY')
+...             next_value = int(current_value) + 1
+...             # now we can put the pipeline back into buffered mode with MULTI
+...             pipe.multi()
+...             pipe.set('OUR-SEQUENCE-KEY', next_value)
+...             # and finally, execute the pipeline (the set command)
+...             pipe.execute()
+...             # if a WatchError wasn't raised during execution, everything
+...             # we just did happened atomically.
+...             break
+...        except WatchError:
+...             # another client must have changed 'OUR-SEQUENCE-KEY' between
+...             # the time we started WATCHing it and the pipeline's execution.
+...             # our best bet is to just retry.
+...             continue
+```
+
+Note that, because the Pipeline must bind to a single connection for the duration of a WATCH, care must be taken to ensure that the connection is returned to the connection pool by calling the reset() method. If the Pipeline is used as a context manager (as in the example above) reset() will be called automatically. Of course you can do this the manual way by explicitly calling reset():
+
+``` python
+>>> pipe = r.pipeline()
+>>> while True:
+...     try:
+...         pipe.watch('OUR-SEQUENCE-KEY')
+...         ...
+...         pipe.execute()
+...         break
+...     except WatchError:
+...         continue
+...     finally:
+...         pipe.reset()
+```
+
+A convenience method named "transaction" exists for handling all the boilerplate of handling and retrying watch errors. It takes a callable that should expect a single parameter, a pipeline object, and any number of keys to be WATCHed. Our client-side INCR command above can be written like this, which is much easier to read:
+
+``` python
+>>> def client_side_incr(pipe):
+...     current_value = pipe.get('OUR-SEQUENCE-KEY')
+...     next_value = int(current_value) + 1
+...     pipe.multi()
+...     pipe.set('OUR-SEQUENCE-KEY', next_value)
+>>>
+>>> r.transaction(client_side_incr, 'OUR-SEQUENCE-KEY')
+[True]
+```
+
+Be sure to call pipe.multi() in the callable passed to Redis.transaction prior to any write commands.
+
+### Pipelines in clusters
+
+ClusterPipeline is a subclass of RedisCluster that provides support for Redis pipelines in cluster mode. When calling the execute() command, all the commands are grouped by the node on which they will be executed, and are then executed by the respective nodes in parallel. The pipeline instance will wait for all the nodes to respond before returning the result to the caller. Command responses are returned as a list sorted in the same order in which they were sent. Pipelines can be used to dramatically increase the throughput of Redis Cluster by significantly reducing the number of network round trips between the client and the server.
+
+``` python
+>>> with rc.pipeline() as pipe:
+...     pipe.set('foo', 'value1')
+...     pipe.set('bar', 'value2')
+...     pipe.get('foo')
+...     pipe.get('bar')
+...     print(pipe.execute())
+[True, True, b'value1', b'value2']
+...     pipe.set('foo1', 'bar1').get('foo1').execute()
+[True, b'bar1']
+```
+
+Please note: - RedisCluster pipelines currently only support key-based commands. - The pipeline gets its ‘read\_from\_replicas’ value from the cluster’s parameter. Thus, if read from replications is enabled in the cluster instance, the pipeline will also direct read commands to replicas. - The ‘transaction’ option is NOT supported in cluster-mode. In non-cluster mode, the ‘transaction’ option is available when executing pipelines. This wraps the pipeline commands with MULTI/EXEC commands, and effectively turns the pipeline commands into a single transaction block. This means that all commands are executed sequentially without any interruptions from other clients. However, in cluster-mode this is not possible, because commands are partitioned according to their respective destination nodes. This means that we can not turn the pipeline commands into one transaction block, because in most cases they are split up into several smaller pipelines.
+
+## Publish / Subscribe
+
+redis-py includes a PubSub object that subscribes to channels and listens for new messages. Creating a PubSub object is easy.
+
+``` python
+>>> r = redis.Redis(...)
+>>> p = r.pubsub()
+```
+
+Once a PubSub instance is created, channels and patterns can be subscribed to.
+
+``` python
+>>> p.subscribe('my-first-channel', 'my-second-channel', ...)
+>>> p.psubscribe('my-*', ...)
+```
+
+The PubSub instance is now subscribed to those channels/patterns. The subscription confirmations can be seen by reading messages from the PubSub instance.
+
+``` python
+>>> p.get_message()
+{'pattern': None, 'type': 'subscribe', 'channel': b'my-second-channel', 'data': 1}
+>>> p.get_message()
+{'pattern': None, 'type': 'subscribe', 'channel': b'my-first-channel', 'data': 2}
+>>> p.get_message()
+{'pattern': None, 'type': 'psubscribe', 'channel': b'my-*', 'data': 3}
+```
+
+Every message read from a PubSub instance will be a dictionary with the following keys.
+
+  - **type**: One of the following: 'subscribe', 'unsubscribe', 'psubscribe', 'punsubscribe', 'message', 'pmessage'
+  - **channel**: The channel \[un\]subscribed to or the channel a message was published to
+  - **pattern**: The pattern that matched a published message's channel. Will be None in all cases except for 'pmessage' types.
+  - **data**: The message data. With \[un\]subscribe messages, this value will be the number of channels and patterns the connection is currently subscribed to. With \[p\]message messages, this value will be the actual published message.
+
+Let's send a message now.
+
+``` python
+# the publish method returns the number matching channel and pattern
+# subscriptions. 'my-first-channel' matches both the 'my-first-channel'
+# subscription and the 'my-*' pattern subscription, so this message will
+# be delivered to 2 channels/patterns
+>>> r.publish('my-first-channel', 'some data')
+2
+>>> p.get_message()
+{'channel': b'my-first-channel', 'data': b'some data', 'pattern': None, 'type': 'message'}
+>>> p.get_message()
+{'channel': b'my-first-channel', 'data': b'some data', 'pattern': b'my-*', 'type': 'pmessage'}
+```
+
+Unsubscribing works just like subscribing. If no arguments are passed to \[p\]unsubscribe, all channels or patterns will be unsubscribed from.
+
+``` python
+>>> p.unsubscribe()
+>>> p.punsubscribe('my-*')
+>>> p.get_message()
+{'channel': b'my-second-channel', 'data': 2, 'pattern': None, 'type': 'unsubscribe'}
+>>> p.get_message()
+{'channel': b'my-first-channel', 'data': 1, 'pattern': None, 'type': 'unsubscribe'}
+>>> p.get_message()
+{'channel': b'my-*', 'data': 0, 'pattern': None, 'type': 'punsubscribe'}
+```
+
+redis-py also allows you to register callback functions to handle published messages. Message handlers take a single argument, the message, which is a dictionary just like the examples above. To subscribe to a channel or pattern with a message handler, pass the channel or pattern name as a keyword argument with its value being the callback function.
+
+When a message is read on a channel or pattern with a message handler, the message dictionary is created and passed to the message handler. In this case, a None value is returned from get\_message() since the message was already handled.
+
+``` python
+>>> def my_handler(message):
+...     print('MY HANDLER: ', message['data'])
+>>> p.subscribe(**{'my-channel': my_handler})
+# read the subscribe confirmation message
+>>> p.get_message()
+{'pattern': None, 'type': 'subscribe', 'channel': b'my-channel', 'data': 1}
+>>> r.publish('my-channel', 'awesome data')
+1
+# for the message handler to work, we need tell the instance to read data.
+# this can be done in several ways (read more below). we'll just use
+# the familiar get_message() function for now
+>>> message = p.get_message()
+MY HANDLER:  awesome data
+# note here that the my_handler callback printed the string above.
+# `message` is None because the message was handled by our handler.
+>>> print(message)
+None
+```
+
+If your application is not interested in the (sometimes noisy) subscribe/unsubscribe confirmation messages, you can ignore them by passing ignore\_subscribe\_messages=True to r.pubsub(). This will cause all subscribe/unsubscribe messages to be read, but they won't bubble up to your application.
+
+``` python
+>>> p = r.pubsub(ignore_subscribe_messages=True)
+>>> p.subscribe('my-channel')
+>>> p.get_message()  # hides the subscribe message and returns None
+>>> r.publish('my-channel', 'my data')
+1
+>>> p.get_message()
+{'channel': b'my-channel', 'data': b'my data', 'pattern': None, 'type': 'message'}
+```
+
+There are three different strategies for reading messages.
+
+The examples above have been using pubsub.get\_message(). Behind the scenes, get\_message() uses the system's 'select' module to quickly poll the connection's socket. If there's data available to be read, get\_message() will read it, format the message and return it or pass it to a message handler. If there's no data to be read, get\_message() will immediately return None. This makes it trivial to integrate into an existing event loop inside your application.
+
+``` python
+>>> while True:
+>>>     message = p.get_message()
+>>>     if message:
+>>>         # do something with the message
+>>>     time.sleep(0.001)  # be nice to the system :)
+```
+
+Older versions of redis-py only read messages with pubsub.listen(). listen() is a generator that blocks until a message is available. If your application doesn't need to do anything else but receive and act on messages received from redis, listen() is an easy way to get up an running.
+
+``` python
+>>> for message in p.listen():
+...     # do something with the message
+```
+
+The third option runs an event loop in a separate thread. pubsub.run\_in\_thread() creates a new thread and starts the event loop. The thread object is returned to the caller of run\_in\_thread(). The caller can use the thread.stop() method to shut down the event loop and thread. Behind the scenes, this is simply a wrapper around get\_message() that runs in a separate thread, essentially creating a tiny non-blocking event loop for you. run\_in\_thread() takes an optional sleep\_time argument. If specified, the event loop will call time.sleep() with the value in each iteration of the loop.
+
+Note: Since we're running in a separate thread, there's no way to handle messages that aren't automatically handled with registered message handlers. Therefore, redis-py prevents you from calling run\_in\_thread() if you're subscribed to patterns or channels that don't have message handlers attached.
+
+``` python
+>>> p.subscribe(**{'my-channel': my_handler})
+>>> thread = p.run_in_thread(sleep_time=0.001)
+# the event loop is now running in the background processing messages
+# when it's time to shut it down...
+>>> thread.stop()
+```
+
+run\_in\_thread also supports an optional exception handler, which lets you catch exceptions that occur within the worker thread and handle them appropriately. The exception handler will take as arguments the exception itself, the pubsub object, and the worker thread returned by run\_in\_thread.
+
+``` python
+>>> p.subscribe(**{'my-channel': my_handler})
+>>> def exception_handler(ex, pubsub, thread):
+>>>     print(ex)
+>>>     thread.stop()
+>>>     thread.join(timeout=1.0)
+>>>     pubsub.close()
+>>> thread = p.run_in_thread(exception_handler=exception_handler)
+```
+
+A PubSub object adheres to the same encoding semantics as the client instance it was created from. Any channel or pattern that's unicode will be encoded using the charset specified on the client before being sent to Redis. If the client's decode\_responses flag is set the False (the default), the 'channel', 'pattern' and 'data' values in message dictionaries will be byte strings (str on Python 2, bytes on Python 3). If the client's decode\_responses is True, then the 'channel', 'pattern' and 'data' values will be automatically decoded to unicode strings using the client's charset.
+
+PubSub objects remember what channels and patterns they are subscribed to. In the event of a disconnection such as a network error or timeout, the PubSub object will re-subscribe to all prior channels and patterns when reconnecting. Messages that were published while the client was disconnected cannot be delivered. When you're finished with a PubSub object, call its .close() method to shutdown the connection.
+
+``` python
+>>> p = r.pubsub()
+>>> ...
+>>> p.close()
+```
+
+The PUBSUB set of subcommands CHANNELS, NUMSUB and NUMPAT are also supported:
+
+``` python
+>>> r.pubsub_channels()
+[b'foo', b'bar']
+>>> r.pubsub_numsub('foo', 'bar')
+[(b'foo', 9001), (b'bar', 42)]
+>>> r.pubsub_numsub('baz')
+[(b'baz', 0)]
+>>> r.pubsub_numpat()
+1204
+```
+
+### Sharded pubsub
+
+[Sharded pubsub](https://redis.io/docs/interact/pubsub/#:~:text=Sharded%20Pub%2FSub%20helps%20to,the%20shard%20of%20a%20cluster.) is a feature introduced with Redis 7.0, and fully supported by redis-py as of 5.0. It helps scale the usage of pub/sub in cluster mode, by having the cluster shard messages to nodes that own a slot for a shard channel. Here, the cluster ensures the published shard messages are forwarded to the appropriate nodes. Clients subscribe to a channel by connecting to either the master responsible for the slot, or any of its replicas.
+
+This makes use of the [SSUBSCRIBE](https://redis.io/commands/ssubscribe) and [SPUBLISH](https://redis.io/commands/spublish) commands within Redis.
+
+The following, is a simplified example:
+
+``` python
+>>> from redis.cluster import RedisCluster, ClusterNode
+>>> r = RedisCluster(startup_nodes=[ClusterNode('localhost', 6379), ClusterNode('localhost', 6380)])
+>>> p = r.pubsub()
+>>> p.ssubscribe('foo')
+>>> # assume someone sends a message along the channel via a publish
+>>> message = p.get_sharded_message()
+```
+
+Similarly, the same process can be used to acquire sharded pubsub messages, that have already been sent to a specific node, by passing the node to get\_sharded\_message:
+
+``` python
+>>> from redis.cluster import RedisCluster, ClusterNode
+>>> first_node = ClusterNode['localhost', 6379]
+>>> second_node = ClusterNode['localhost', 6380]
+>>> r = RedisCluster(startup_nodes=[first_node, second_node])
+>>> p = r.pubsub()
+>>> p.ssubscribe('foo')
+>>> # assume someone sends a message along the channel via a publish
+>>> message = p.get_sharded_message(target_node=second_node)
+```
+
+### Monitor
+
+redis-py includes a Monitor object that streams every command processed by the Redis server. Use listen() on the Monitor object to block until a command is received.
+
+``` python
+>>> r = redis.Redis(...)
+>>> with r.monitor() as m:
+>>>     for command in m.listen():
+>>>         print(command)
+```
+
+---
+
+backoff.md
+
+---
+
+# Backoff
+
+<div class="automodule" data-members="">
+
+redis.backoff
+
+</div>
+
+---
+
+clustering.md
+
+---
+
+# Clustering
+
+redis-py now supports cluster mode and provides a client for [Redis Cluster](https://redis.io/topics/cluster-tutorial).
+
+The cluster client is based on Grokzen’s [redis-py-cluster](https://github.com/Grokzen/redis-py-cluster), has added bug fixes, and now supersedes that library. Support for these changes is thanks to his contributions.
+
+To learn more about Redis Cluster, see [Redis Cluster specifications](https://redis.io/topics/cluster-spec).
+
+[Creating clusters](#creating-clusters) | [Specifying Target Nodes](#specifying-target-nodes) | [Multi-key Commands](#multi-key-commands) | [Known PubSub Limitations](#known-pubsub-limitations)
+
+## Creating clusters
+
+Connecting redis-py to a Redis Cluster instance(s) requires at a minimum a single node for cluster discovery. There are multiple ways in which a cluster instance can be created:
+
+  - Using ‘host’ and ‘port’ arguments:
+
+<!-- end list -->
+
+``` python
+>>> from redis.cluster import RedisCluster as Redis
+>>> rc = Redis(host='localhost', port=6379)
+>>> print(rc.get_nodes())
+    [[host=127.0.0.1,port=6379,name=127.0.0.1:6379,server_type=primary,redis_connection=Redis<ConnectionPool<Connection<host=127.0.0.1,port=6379,db=0>>>], [host=127.0.0.1,port=6378,name=127.0.0.1:6378,server_type=primary,redis_connection=Redis<ConnectionPool<Connection<host=127.0.0.1,port=6378,db=0>>>], [host=127.0.0.1,port=6377,name=127.0.0.1:6377,server_type=replica,redis_connection=Redis<ConnectionPool<Connection<host=127.0.0.1,port=6377,db=0>>>]]
+```
+
+  - Using the Redis URL specification:
+
+<!-- end list -->
+
+``` python
+>>> from redis.cluster import RedisCluster as Redis
+>>> rc = Redis.from_url("redis://localhost:6379/0")
+```
+
+  - Directly, via the ClusterNode class:
+
+<!-- end list -->
+
+``` python
+>>> from redis.cluster import RedisCluster as Redis
+>>> from redis.cluster import ClusterNode
+>>> nodes = [ClusterNode('localhost', 6379), ClusterNode('localhost', 6378)]
+>>> rc = Redis(startup_nodes=nodes)
+```
+
+When a RedisCluster instance is being created it first attempts to establish a connection to one of the provided startup nodes. If none of the startup nodes are reachable, a ‘RedisClusterException’ will be thrown. After a connection to the one of the cluster’s nodes is established, the RedisCluster instance will be initialized with 3 caches: a slots cache which maps each of the 16384 slots to the node/s handling them, a nodes cache that contains ClusterNode objects (name, host, port, redis connection) for all of the cluster’s nodes, and a commands cache contains all the server supported commands that were retrieved using the Redis ‘COMMAND’ output. See *RedisCluster specific options* below for more.
+
+RedisCluster instance can be directly used to execute Redis commands. When a command is being executed through the cluster instance, the target node(s) will be internally determined. When using a key-based command, the target node will be the node that holds the key’s slot. Cluster management commands and other commands that are not key-based have a parameter called ‘target\_nodes’ where you can specify which nodes to execute the command on. In the absence of target\_nodes, the command will be executed on the default cluster node. As part of cluster instance initialization, the cluster’s default node is randomly selected from the cluster’s primaries, and will be updated upon reinitialization. Using r.get\_default\_node(), you can get the cluster’s default node, or you can change it using the ‘set\_default\_node’ method.
+
+The ‘target\_nodes’ parameter is explained in the following section, ‘Specifying Target Nodes’.
+
+``` python
+>>> # target-nodes: the node that holds 'foo1's key slot
+>>> rc.set('foo1', 'bar1')
+>>> # target-nodes: the node that holds 'foo2's key slot
+>>> rc.set('foo2', 'bar2')
+>>> # target-nodes: the node that holds 'foo1's key slot
+>>> print(rc.get('foo1'))
+b'bar'
+>>> # target-node: default-node
+>>> print(rc.keys())
+[b'foo1']
+>>> # target-node: default-node
+>>> rc.ping()
+```
+
+## Specifying Target Nodes
+
+As mentioned above, all non key-based RedisCluster commands accept the kwarg parameter ‘target\_nodes’ that specifies the node/nodes that the command should be executed on. The best practice is to specify target nodes using RedisCluster class’s node flags: PRIMARIES, REPLICAS, ALL\_NODES, RANDOM. When a nodes flag is passed along with a command, it will be internally resolved to the relevant node/s. If the nodes topology of the cluster changes during the execution of a command, the client will be able to resolve the nodes flag again with the new topology and attempt to retry executing the command.
+
+``` python
+>>> from redis.cluster import RedisCluster as Redis
+>>> # run cluster-meet command on all of the cluster's nodes
+>>> rc.cluster_meet('127.0.0.1', 6379, target_nodes=Redis.ALL_NODES)
+>>> # ping all replicas
+>>> rc.ping(target_nodes=Redis.REPLICAS)
+>>> # ping a random node
+>>> rc.ping(target_nodes=Redis.RANDOM)
+>>> # get the keys from all cluster nodes
+>>> rc.keys(target_nodes=Redis.ALL_NODES)
+[b'foo1', b'foo2']
+>>> # execute bgsave in all primaries
+>>> rc.bgsave(Redis.PRIMARIES)
+```
+
+You could also pass ClusterNodes directly if you want to execute a command on a specific node / node group that isn’t addressed by the nodes flag. However, if the command execution fails due to cluster topology changes, a retry attempt will not be made, since the passed target node/s may no longer be valid, and the relevant cluster or connection error will be returned.
+
+``` python
+>>> node = rc.get_node('localhost', 6379)
+>>> # Get the keys only for that specific node
+>>> rc.keys(target_nodes=node)
+>>> # get Redis info from a subset of primaries
+>>> subset_primaries = [node for node in rc.get_primaries() if node.port > 6378]
+>>> rc.info(target_nodes=subset_primaries)
+```
+
+In addition, the RedisCluster instance can query the Redis instance of a specific node and execute commands on that node directly. The Redis client, however, does not handle cluster failures and retries.
+
+``` python
+>>> cluster_node = rc.get_node(host='localhost', port=6379)
+>>> print(cluster_node)
+[host=127.0.0.1,port=6379,name=127.0.0.1:6379,server_type=primary,redis_connection=Redis<ConnectionPool<Connection<host=127.0.0.1,port=6379,db=0>>>]
+>>> r = cluster_node.redis_connection
+>>> r.client_list()
+[{'id': '276', 'addr': '127.0.0.1:64108', 'fd': '16', 'name': '', 'age': '0', 'idle': '0', 'flags': 'N', 'db': '0', 'sub': '0', 'psub': '0', 'multi': '-1', 'qbuf': '26', 'qbuf-free': '32742', 'argv-mem': '10', 'obl': '0', 'oll': '0', 'omem': '0', 'tot-mem': '54298', 'events': 'r', 'cmd': 'client', 'user': 'default'}]
+>>> # Get the keys only for that specific node
+>>> r.keys()
+[b'foo1']
+```
+
+## Multi-key Commands
+
+Redis supports multi-key commands in Cluster Mode, such as Set type unions or intersections, mset and mget, as long as the keys all hash to the same slot. By using RedisCluster client, you can use the known functions (e.g. mget, mset) to perform an atomic multi-key operation. However, you must ensure all keys are mapped to the same slot, otherwise a RedisClusterException will be thrown. Redis Cluster implements a concept called hash tags that can be used in order to force certain keys to be stored in the same hash slot, see [Keys hash tag](https://redis.io/topics/cluster-spec#keys-hash-tags). You can also use nonatomic for some of the multikey operations, and pass keys that aren’t mapped to the same slot. The client will then map the keys to the relevant slots, sending the commands to the slots’ node owners. Non-atomic operations batch the keys according to their hash value, and then each batch is sent separately to the slot’s owner.
+
+``` python
+# Atomic operations can be used when all keys are mapped to the same slot
+>>> rc.mset({'{foo}1': 'bar1', '{foo}2': 'bar2'})
+>>> rc.mget('{foo}1', '{foo}2')
+[b'bar1', b'bar2']
+# Non-atomic multi-key operations splits the keys into different slots
+>>> rc.mset_nonatomic({'foo': 'value1', 'bar': 'value2', 'zzz': 'value3')
+>>> rc.mget_nonatomic('foo', 'bar', 'zzz')
+[b'value1', b'value2', b'value3']
+```
+
+**Cluster PubSub:**
+
+When a ClusterPubSub instance is created without specifying a node, a single node will be transparently chosen for the pubsub connection on the first command execution. The node will be determined by: 1. Hashing the channel name in the request to find its keyslot 2. Selecting a node that handles the keyslot: If read\_from\_replicas is set to true, a replica can be selected.
+
+## Known PubSub Limitations
+
+Pattern subscribe and publish do not currently work properly due to key slots. If we hash a pattern like fo\* we will receive a keyslot for that string but there are endless possibilities for channel names based on this pattern - unknowable in advance. This feature is not disabled but the commands are not currently recommended for use. See [redis-py-cluster documentation](https://redis-py-cluster.readthedocs.io/en/stable/pubsub.html) for more.
+
+``` python
+>>> p1 = rc.pubsub()
+# p1 connection will be set to the node that holds 'foo' keyslot
+>>> p1.subscribe('foo')
+# p2 connection will be set to node 'localhost:6379'
+>>> p2 = rc.pubsub(rc.get_node('localhost', 6379))
+```
+
+**Read Only Mode**
+
+By default, Redis Cluster always returns MOVE redirection response on accessing a replica node. You can overcome this limitation and scale read commands by triggering READONLY mode.
+
+To enable READONLY mode pass read\_from\_replicas=True to RedisCluster constructor. When set to true, read commands will be assigned between the primary and its replications in a Round-Robin manner.
+
+READONLY mode can be set at runtime by calling the readonly() method with target\_nodes=‘replicas’, and read-write access can be restored by calling the readwrite() method.
+
+``` python
+>>> from cluster import RedisCluster as Redis
+# Use 'debug' log level to print the node that the command is executed on
+>>> rc_readonly = Redis(startup_nodes=startup_nodes,
+...                     read_from_replicas=True)
+>>> rc_readonly.set('{foo}1', 'bar1')
+>>> for i in range(0, 4):
+...     # Assigns read command to the slot's hosts in a Round-Robin manner
+...     rc_readonly.get('{foo}1')
+# set command would be directed only to the slot's primary node
+>>> rc_readonly.set('{foo}2', 'bar2')
+# reset READONLY flag
+>>> rc_readonly.readwrite(target_nodes='replicas')
+# now the get command would be directed only to the slot's primary node
+>>> rc_readonly.get('{foo}1')
+```
+
+---
+
+commands.md
+
+---
+
+# Redis Commands
+
+## Core Commands
+
+The following functions can be used to replicate their equivalent [Redis command](https://redis.io/commands). Generally they can be used as functions on your redis connection. For the simplest example, see below:
+
+Getting and settings data in redis:
+
+    import redis
+    r = redis.Redis(decode_responses=True)
+    r.set('mykey', 'thevalueofmykey')
+    r.get('mykey')
+
+<div class="autoclass" data-inherited-members="">
+
+redis.commands.core.CoreCommands
+
+</div>
+
+## Sentinel Commands
+
+<div class="autoclass" data-inherited-members="">
+
+redis.commands.sentinel.SentinelCommands
+
+</div>
+
+## Redis Cluster Commands
+
+The following [Redis commands](https://redis.io/commands) are available within a [Redis Cluster](https://redis.io/topics/cluster-tutorial). Generally they can be used as functions on your redis connection.
+
+<div class="autoclass" data-inherited-members="">
+
+redis.commands.cluster.RedisClusterCommands
+
+</div>
+
+---
+
+connections.md
+
+---
+
+# Connecting to Redis
+
+## Generic Client
+
+This is the client used to connect directly to a standard Redis node.
+
+<div class="autoclass" data-members="">
+
+redis.Redis
+
+</div>
+
+## Sentinel Client
+
+Redis [Sentinel](https://redis.io/topics/sentinel) provides high availability for Redis. There are commands that can only be executed against a Redis node running in sentinel mode. Connecting to those nodes, and executing commands against them requires a Sentinel connection.
+
+Connection example (assumes Redis exists on the ports listed below):
+
+> \>\>\> from redis import Sentinel \>\>\> sentinel = Sentinel(\[('localhost', 26379)\], socket\_timeout=0.1) \>\>\> sentinel.discover\_master('mymaster') ('127.0.0.1', 6379) \>\>\> sentinel.discover\_slaves('mymaster') \[('127.0.0.1', 6380)\]
+
+### Sentinel
+
+<div class="autoclass" data-members="">
+
+redis.sentinel.Sentinel
+
+</div>
+
+### SentinelConnectionPool
+
+<div class="autoclass" data-members="">
+
+redis.sentinel.SentinelConnectionPool
+
+</div>
+
+## Cluster Client
+
+This client is used for connecting to a Redis Cluster.
+
+### RedisCluster
+
+<div class="autoclass" data-members="">
+
+redis.cluster.RedisCluster
+
+</div>
+
+### ClusterNode
+
+<div class="autoclass" data-members="">
+
+redis.cluster.ClusterNode
+
+</div>
+
+## Async Client
+
+See complete example: [here](examples/asyncio_examples.html)
+
+This client is used for communicating with Redis, asynchronously.
+
+<div class="autoclass" data-members="">
+
+redis.asyncio.client.Redis
+
+</div>
+
+## Async Cluster Client
+
+### RedisCluster (Async)
+
+<div class="autoclass" data-members="" data-member-order="bysource">
+
+redis.asyncio.cluster.RedisCluster
+
+</div>
+
+### ClusterNode (Async)
+
+<div class="autoclass" data-members="" data-member-order="bysource">
+
+redis.asyncio.cluster.ClusterNode
+
+</div>
+
+### ClusterPipeline (Async)
+
+<div class="autoclass" data-members="execute_command, execute" data-member-order="bysource">
+
+redis.asyncio.cluster.ClusterPipeline
+
+</div>
+
+## Connection
+
+See complete example: [here](examples/connection_examples.html)
+
+### Connection
+
+<div class="autoclass" data-members="">
+
+redis.connection.Connection
+
+</div>
+
+### Connection (Async)
+
+<div class="autoclass" data-members="">
+
+redis.asyncio.connection.Connection
+
+</div>
+
+## Connection Pools
+
+See complete example: [here](examples/connection_examples.html)
+
+### ConnectionPool
+
+<div class="autoclass" data-members="">
+
+redis.connection.ConnectionPool
+
+</div>
+
+### ConnectionPool (Async)
+
+<div class="autoclass" data-members="">
+
+redis.asyncio.connection.ConnectionPool
+
+</div>
+
+---
+
+examples.md
+
+---
+
+# Examples
+
+<div class="toctree" data-maxdepth="3" data-glob="">
+
+examples/connection\_examples examples/ssl\_connection\_examples examples/asyncio\_examples examples/search\_json\_examples examples/set\_and\_get\_examples examples/search\_vector\_similarity\_examples examples/pipeline\_examples examples/timeseries\_examples examples/redis-stream-example examples/opentelemetry\_api\_examples
+
+</div>
+
+---
+
+exceptions.md
+
+---
+
+# Exceptions
+
+<div class="automodule" data-members="">
+
+redis.exceptions
+
+</div>
+
+---
+
+genindex.md
+
+---
+
+# Module Index
+
+---
+
+index.md
+
+---
+
+# redis-py - Python Client for Redis
+
+## Getting Started
+
+[redis-py](https://pypi.org/project/redis) requires a running Redis server, and Python 3.7+. See the [Redis quickstart](https://redis.io/topics/quickstart) for Redis installation instructions.
+
+redis-py can be installed using pip via `pip install redis`.
+
+## Quickly connecting to redis
+
+There are two quick ways to connect to Redis.
+
+**Assuming you run Redis on localhost:6379 (the default)**
+
+`` `python    import redis    r = redis.Redis()    r.ping()  **Running redis on foo.bar.com, port 12345**  .. code-block:: python     import redis    r = redis.Redis(host='foo.bar.com', port=12345)    r.ping()  **Another example with foo.bar.com, port 12345**  .. code-block:: python     import redis    r = redis.from_url('redis://foo.bar.com:12345')    r.ping()  After that, you probably want to `run redis commands <commands.html>`_.  .. toctree::    :hidden:     genindex  Redis Command Functions ``\` \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* .. toctree:: :maxdepth: 2
+
+> commands redismodules
+
+## Module Documentation
+
+<div class="toctree" data-maxdepth="1">
+
+connections clustering exceptions backoff lock retry lua\_scripting opentelemetry resp3\_features advanced\_features examples
+
+</div>
+
+## Contributing
+
+  - [How to contribute](https://github.com/redis/redis-py/blob/master/CONTRIBUTING.md)
+  - [Issue Tracker](https://github.com/redis/redis-py/issues)
+  - [Source Code](https://github.com/redis/redis-py/)
+  - [Release History](https://github.com/redis/redis-py/releases/)
+
+## License
+
+This project is licensed under the [MIT license](https://github.com/redis/redis-py/blob/master/LICENSE).
+
+---
+
+lock.md
+
+---
+
+# Lock
+
+<div class="automodule" data-members="">
+
+redis.lock
+
+</div>
+
+---
+
+lua_scripting.md
+
+---
+
+Lua Scripting ===
+
+[Lua Scripting](#lua-scripting-in-default-connections) | [Pipelines](#pipelines) | [Cluster mode](#cluster-mode)
+
+-----
+
+# Lua Scripting in default connections
+
+redis-py supports the EVAL, EVALSHA, and SCRIPT commands. However, there are a number of edge cases that make these commands tedious to use in real world scenarios. Therefore, redis-py exposes a Script object that makes scripting much easier to use. (RedisClusters have limited support for scripting.)
+
+To create a Script instance, use the register\_script function on a client instance passing the Lua code as the first argument. register\_script returns a Script instance that you can use throughout your code.
+
+The following trivial Lua script accepts two parameters: the name of a key and a multiplier value. The script fetches the value stored in the key, multiplies it with the multiplier value and returns the result.
+
+``` python
+>>> r = redis.Redis()
+>>> lua = """
+... local value = redis.call('GET', KEYS[1])
+... value = tonumber(value)
+... return value * ARGV[1]"""
+>>> multiply = r.register_script(lua)
+```
+
+multiply is now a Script instance that is invoked by calling it like a function. Script instances accept the following optional arguments:
+
+  - **keys**: A list of key names that the script will access. This becomes the KEYS list in Lua.
+  - **args**: A list of argument values. This becomes the ARGV list in Lua.
+  - **client**: A redis-py Client or Pipeline instance that will invoke the script. If client isn't specified, the client that initially created the Script instance (the one that register\_script was invoked from) will be used.
+
+Continuing the example from above:
+
+``` python
+>>> r.set('foo', 2)
+>>> multiply(keys=['foo'], args=[5])
+10
+```
+
+The value of key 'foo' is set to 2. When multiply is invoked, the 'foo' key is passed to the script along with the multiplier value of 5. Lua executes the script and returns the result, 10.
+
+Script instances can be executed using a different client instance, even one that points to a completely different Redis server.
+
+``` python
+>>> r2 = redis.Redis('redis2.example.com')
+>>> r2.set('foo', 3)
+>>> multiply(keys=['foo'], args=[5], client=r2)
+15
+```
+
+The Script object ensures that the Lua script is loaded into Redis's script cache. In the event of a NOSCRIPT error, it will load the script and retry executing it.
+
+# Pipelines
+
+Script objects can also be used in pipelines. The pipeline instance should be passed as the client argument when calling the script. Care is taken to ensure that the script is registered in Redis's script cache just prior to pipeline execution.
+
+``` python
+>>> pipe = r.pipeline()
+>>> pipe.set('foo', 5)
+>>> multiply(keys=['foo'], args=[5], client=pipe)
+>>> pipe.execute()
+[True, 25]
+```
+
+# Cluster Mode
+
+Cluster mode has limited support for lua scripting.
+
+The following commands are supported, with caveats:
+
+  - `EVAL` and `EVALSHA`: The command is sent to the relevant node, depending on the keys (i.e., in `EVAL "<script>" num_keys key_1 ... key_n ...`). The keys *must* all be on the same node. If the script requires 0 keys, *the command is sent to a random (primary) node*.
+  - `SCRIPT EXISTS`: The command is sent to all primaries. The result is a list of booleans corresponding to the input SHA hashes. Each boolean is an AND of “does the script exist on each node?”. In other words, each boolean is True iff the script exists on all nodes.
+  - `SCRIPT FLUSH`: The command is sent to all primaries. The result is a bool AND over all nodes’ responses.
+  - `SCRIPT LOAD`: The command is sent to all primaries. The result is the SHA1 digest.
+
+The following commands are not supported:
+
+  - `EVAL_RO`
+  - `EVALSHA_RO`
+
+Using scripting within pipelines in cluster mode is **not supported**.
+
+---
+
+opentelemetry.md
+
+---
+
+# Integrating OpenTelemetry
+
+## What is OpenTelemetry?
+
+[OpenTelemetry](https://opentelemetry.io) is an open-source observability framework for traces, metrics, and logs. It is a merger of OpenCensus and OpenTracing projects hosted by Cloud Native Computing Foundation.
+
+OpenTelemetry allows developers to collect and export telemetry data in a vendor agnostic way. With OpenTelemetry, you can instrument your application once and then add or change vendors without changing the instrumentation, for example, here is a list of [popular DataDog competitors](https://uptrace.dev/get/compare/datadog-competitors.html) that support OpenTelemetry.
+
+## What is tracing?
+
+[OpenTelemetry tracing](https://uptrace.dev/opentelemetry/distributed-tracing.html) allows you to see how a request progresses through different services and systems, timings of each operation, any logs and errors as they occur.
+
+In a distributed environment, tracing also helps you understand relationships and interactions between microservices. Distributed tracing gives an insight into how a particular microservice is performing and how that service affects other microservices.
+
+![Trace](images/opentelemetry/distributed-tracing.png)
+
+Using tracing, you can break down requests into spans. **Span** is an operation (unit of work) your app performs handling a request, for example, a database query or a network call.
+
+**Trace** is a tree of spans that shows the path that a request makes through an app. Root span is the first span in a trace.
+
+![Trace](images/opentelemetry/tree-of-spans.png)
+
+To learn more about tracing, see [Distributed Tracing using OpenTelemetry](https://uptrace.dev/opentelemetry/distributed-tracing.html).
+
+## OpenTelemetry instrumentation
+
+Instrumentations are plugins for popular frameworks and libraries that use OpenTelemetry API to record important operations, for example, HTTP requests, DB queries, logs, errors, and more.
+
+To install OpenTelemetry [instrumentation](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/redis/redis.html) for redis-py:
+
+`` `shell    pip install opentelemetry-instrumentation-redis  You can then use it to instrument code like this:  .. code-block:: python     from opentelemetry.instrumentation.redis import RedisInstrumentor     RedisInstrumentor().instrument()  Once the code is patched, you can use redis-py as usually:  .. code-block:: python     # Sync client    client = redis.Redis()    client.get("my-key")     # Async client    client = redis.asyncio.Redis()    await client.get("my-key")  OpenTelemetry API ``\` -----------------
+
+[OpenTelemetry API](https://uptrace.dev/opentelemetry/) is a programming interface that you can use to instrument code and collect telemetry data such as traces, metrics, and logs.
+
+You can use OpenTelemetry API to measure important operations:
+
+`` `python    from opentelemetry import trace     tracer = trace.get_tracer("app_or_package_name", "1.0.0")     # Create a span with name "operation-name" and kind="server".    with tracer.start_as_current_span("operation-name", kind=trace.SpanKind.CLIENT) as span:        do_some_work()  Record contextual information using attributes:  .. code-block:: python     if span.is_recording():        span.set_attribute("http.method", "GET")        span.set_attribute("http.route", "/projects/:id")  And monitor exceptions:  .. code-block:: python     except ValueError as exc:        # Record the exception and update the span status.        span.record_exception(exc)        span.set_status(trace.Status(trace.StatusCode.ERROR, str(exc)))  See `OpenTelemetry Python Tracing API <https://uptrace.dev/opentelemetry/python-tracing.html>`_ for details.  Uptrace ``\` -------
+
+Uptrace is an [open source APM](https://uptrace.dev/get/open-source-apm.html) that supports distributed tracing, metrics, and logs. You can use it to monitor applications and set up automatic alerts to receive notifications via email, Slack, Telegram, and more.
+
+You can use Uptrace to monitor redis-py using this [GitHub example](https://github.com/redis/redis-py/tree/master/docs/examples/opentelemetry) as a starting point.
+
+![Redis-py trace](images/opentelemetry/redis-py-trace.png)
+
+You can [install Uptrace](https://uptrace.dev/get/install.html) by downloading a DEB/RPM package or a pre-compiled binary.
+
+## Monitoring Redis Server performance
+
+In addition to monitoring redis-py client, you can also monitor Redis Server performance using OpenTelemetry Collector Agent.
+
+OpenTelemetry Collector is a proxy/middleman between your application and a [distributed tracing tool](https://uptrace.dev/blog/distributed-tracing-tools.html) such as Uptrace or Jaeger. Collector receives telemetry data, processes it, and then exports the data to APM tools that can store it permanently.
+
+For example, you can use the <span class="title-ref">OpenTelemetry Redis receiver \<https://uptrace.dev/get/monitor/opentelemetry-redis.html\></span> provided by Otel Collector to monitor Redis performance:
+
+![Redis metrics](images/opentelemetry/redis-metrics.png)
+
+See introduction to [OpenTelemetry Collector](https://uptrace.dev/opentelemetry/collector.html) for details.
+
+## Alerting and notifications
+
+Uptrace also allows you to monitor [OpenTelemetry metrics](https://uptrace.dev/opentelemetry/metrics.html) using alerting rules. For example, the following monitor uses the group by node expression to create an alert whenever an individual Redis shard is down:
+
+`` `yaml    monitors:      - name: Redis shard is down        metrics:          - redis_up as $redis_up        query:          - group by cluster # monitor each cluster,          - group by bdb # each database,          - group by node # and each shard          - $redis_up        min_allowed_value: 1        # shard should be down for 5 minutes to trigger an alert        for_duration: 5m  You can also create queries with more complex expressions. For example, the following rule creates an alert when the keyspace hit rate is lower than 75%:  .. code-block:: yaml     monitors:      - name: Redis read hit rate < 75%        metrics:          - redis_keyspace_read_hits as $hits          - redis_keyspace_read_misses as $misses        query:          - group by cluster          - group by bdb          - group by node          - $hits / ($hits + $misses) as hit_rate        min_allowed_value: 0.75        for_duration: 5m  See `Alerting and Notifications <https://uptrace.dev/get/alerting.html>`_ for details.  What's next? ``\` ------------
+
+Next, you can learn how to configure [uptrace-python](https://uptrace.dev/get/opentelemetry-python.html) to export spans, metrics, and logs to Uptrace.
+
+You may also be interested in the following guides:
+
+  - [OpenTelemetry Django](https://uptrace.dev/get/instrument/opentelemetry-django.html)
+  - [OpenTelemetry Flask](https://uptrace.dev/get/instrument/instrument/opentelemetry-flask.html)
+  - [OpenTelemetry FastAPI](https://uptrace.dev/get/instrument/opentelemetry-fastapi.html)
+  - [OpenTelemetry SQLAlchemy](https://uptrace.dev/get/instrument/opentelemetry-sqlalchemy.html)
+
+---
+
+redismodules.md
+
+---
+
+# Redis Modules Commands
+
+Accessing redis module commands requires the installation of the supported [Redis module](https://docs.redis.com/latest/modules/). For a quick start with redis modules, try the [Redismod docker](https://hub.docker.com/r/redislabs/redismod).
+
+## RedisBloom Commands
+
+These are the commands for interacting with the [RedisBloom module](https://redisbloom.io). Below is a brief example, as well as documentation on the commands themselves.
+
+**Create and add to a bloom filter**
+
+`` `python     import redis     r = redis.Redis()     r.bf().create("bloom", 0.01, 1000)     r.bf().add("bloom", "foo")  **Create and add to a cuckoo filter**  .. code-block:: python      import redis     r = redis.Redis()     r.cf().create("cuckoo", 1000)     r.cf().add("cuckoo", "filter")  **Create Count-Min Sketch and get information**  .. code-block:: python      import redis     r = redis.Redis()     r.cms().initbydim("dim", 1000, 5)     r.cms().incrby("dim", ["foo"], [5])     r.cms().info("dim")  **Create a topk list, and access the results**  .. code-block:: python      import redis     r = redis.Redis()     r.topk().reserve("mytopk", 3, 50, 4, 0.9)     r.topk().info("mytopk")  .. automodule:: redis.commands.bf.commands     :members: BFCommands, CFCommands, CMSCommands, TOPKCommands  ------  RedisGraph Commands ``\` \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+These are the commands for interacting with the [RedisGraph module](https://redisgraph.io). Below is a brief example, as well as documentation on the commands themselves.
+
+**Create a graph, adding two nodes**
+
+`` `python     import redis     from redis.graph.node import Node      john = Node(label="person", properties={"name": "John Doe", "age": 33}     jane = Node(label="person", properties={"name": "Jane Doe", "age": 34}      r = redis.Redis()     graph = r.graph()     graph.add_node(john)     graph.add_node(jane)     graph.add_node(pat)     graph.commit()  .. automodule:: redis.commands.graph.node     :members: Node  .. automodule:: redis.commands.graph.edge     :members: Edge  .. automodule:: redis.commands.graph.commands     :members: GraphCommands  ------  RedisJSON Commands ``\` \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+These are the commands for interacting with the [RedisJSON module](https://redisjson.io). Below is a brief example, as well as documentation on the commands themselves.
+
+**Create a json object**
+
+`` `python     import redis     r = redis.Redis()     r.json().set("mykey", ".", {"hello": "world", "i am": ["a", "json", "object!"]})  Examples of how to combine search and json can be found `here <examples/search_json_examples.html>`_.  .. automodule:: redis.commands.json.commands     :members: JSONCommands  -----  RediSearch Commands ``\` \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+These are the commands for interacting with the [RediSearch module](https://redisearch.io). Below is a brief example, as well as documentation on the commands themselves. In the example below, an index named *my\_index* is being created. When an index name is not specified, an index named *idx* is created.
+
+**Create a search index, and display its information**
+
+`` `python     import redis     from redis.commands.search.field import TextField      r = redis.Redis()     index_name = "my_index"     schema = (         TextField("play", weight=5.0),         TextField("ball"),     )     r.ft(index_name).create_index(schema)     print(r.ft(index_name).info())   .. automodule:: redis.commands.search.commands     :members: SearchCommands  -----  RedisTimeSeries Commands ``\` \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+These are the commands for interacting with the [RedisTimeSeries module](https://redistimeseries.io). Below is a brief example, as well as documentation on the commands themselves.
+
+**Create a timeseries object with 5 second retention**
+
+`` `python     import redis     r = redis.Redis()     r.ts().create(2, retention_msecs=5000)  .. automodule:: redis.commands.timeseries.commands     :members: TimeSeriesCommands ``\`
+
+---
+
+resp3_features.md
+
+---
+
+# RESP 3 Features
+
+As of version 5.0, redis-py supports the [RESP 3 standard](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md). Practically, this means that client using RESP 3 will be faster and more performant as fewer type translations occur in the client. It also means new response types like doubles, true simple strings, maps, and booleans are available.
+
+## Connecting
+
+Enabling RESP3 is no different than other connections in redis-py. In all cases, the connection type must be extending by setting <span class="title-ref">protocol=3</span>. The following are some base examples illustrating how to enable a RESP 3 connection.
+
+Connect with a standard connection, but specifying resp 3:
+
+``` python
+>>> import redis
+>>> r = redis.Redis(host='localhost', port=6379, protocol=3)
+>>> r.ping()
+```
+
+Or using the URL scheme:
+
+``` python
+>>> import redis
+>>> r = redis.from_url("redis://localhost:6379?protocol=3")
+>>> r.ping()
+```
+
+Connect with async, specifying resp 3:
+
+``` python
+>>> import redis.asyncio as redis
+>>> r = redis.Redis(host='localhost', port=6379, protocol=3)
+>>> await r.ping()
+```
+
+The URL scheme with the async client
+
+``` python
+>>> import redis.asyncio as Redis
+>>> r = redis.from_url("redis://localhost:6379?protocol=3")
+>>> await r.ping()
+```
+
+Connecting to an OSS Redis Cluster with RESP 3
+
+``` python
+>>> from redis.cluster import RedisCluster, ClusterNode
+>>> r = RedisCluster(startup_nodes=[ClusterNode('localhost', 6379), ClusterNode('localhost', 6380)], protocol=3)
+>>> r.ping()
+```
+
+## Push notifications
+
+Push notifications are a way that redis sends out of band data. The RESP 3 protocol includes a [push type](https://github.com/redis/redis-specifications/blob/master/protocol/RESP3.md#push-type) that allows our client to intercept these out of band messages. By default, clients will log simple messages, but redis-py includes the ability to bring your own function processor.
+
+This means that should you want to perform something, on a given push notification, you specify a function during the connection, as per this examples:
+
+``` python
+>> from redis import Redis
+>>
+>> def our_func(message):
+>>    if message.find("This special thing happened"):
+>>        raise IOError("This was the message: \n" + message)
+>>
+>> r = Redis(protocol=3)
+>> p = r.pubsub(push_handler_func=our_func)
+```
+
+In the example above, upon receipt of a push notification, rather than log the message, in the case where specific text occurs, an IOError is raised. This example, highlights how one could start implementing a customized message handler.
+
+## Client-side caching
+
+Client-side caching is a technique used to create high performance services. It utilizes the memory on application servers, typically separate from the database nodes, to cache a subset of the data directly on the application side. For more information please check [official Redis documentation](https://redis.io/docs/latest/develop/use/client-side-caching/). Please notice that this feature only available with RESP3 protocol enabled in sync client only. Supported in standalone, Cluster and Sentinel clients.
+
+Basic usage:
+
+Enable caching with default configuration:
+
+``` python
+>>> import redis
+>>> from redis.cache import CacheConfig
+>>> r = redis.Redis(host='localhost', port=6379, protocol=3, cache_config=CacheConfig())
+```
+
+The same interface applies to Redis Cluster and Sentinel.
+
+Enable caching with custom cache implementation:
+
+``` python
+>>> import redis
+>>> from foo.bar import CacheImpl
+>>> r = redis.Redis(host='localhost', port=6379, protocol=3, cache=CacheImpl())
+```
+
+CacheImpl should implement a <span class="title-ref">CacheInterface</span> specified in <span class="title-ref">redis.cache</span> package.
+
+More comprehensive documentation soon will be available at [official Redis documentation](https://redis.io/docs/latest/).
+
+---
+
+retry.md
+
+---
+
+# Retry Helpers
+
+<div class="automodule" data-members="">
+
+redis.retry
+
+</div>
+
+## Retry in Redis Standalone
+
+\>\>\> from redis.backoff import ExponentialBackoff \>\>\> from redis.retry import Retry \>\>\> from redis.client import Redis \>\>\> from redis.exceptions import ( \>\>\> BusyLoadingError, \>\>\> ConnectionError, \>\>\> TimeoutError \>\>\> ) \>\>\> \>\>\> \# Run 3 retries with exponential backoff strategy \>\>\> retry = Retry(ExponentialBackoff(), 3) \>\>\> \# Redis client with retries on custom errors \>\>\> r = Redis(host='localhost', port=6379, retry=retry, retry\_on\_error=\[BusyLoadingError, ConnectionError, TimeoutError\]) \>\>\> \# Redis client with retries on TimeoutError only \>\>\> r\_only\_timeout = Redis(host='localhost', port=6379, retry=retry, retry\_on\_timeout=True)
+
+As you can see from the example above, Redis client supports 3 parameters to configure the retry behaviour:
+
+  - `retry`: <span class="title-ref">\~.Retry</span> instance with a \[backoff-label\](\#backoff-label) strategy and the max number of retries
+  - `retry_on_error`: list of \[exceptions-label\](\#exceptions-label) to retry on
+  - `retry_on_timeout`: if `True`, retry on <span class="title-ref">\~.TimeoutError</span> only
+
+If either `retry_on_error` or `retry_on_timeout` are passed and no `retry` is given, by default it uses a `Retry(NoBackoff(), 1)` (meaning 1 retry right after the first failure).
+
+## Retry in Redis Cluster
+
+\>\>\> from redis.backoff import ExponentialBackoff \>\>\> from redis.retry import Retry \>\>\> from redis.cluster import RedisCluster \>\>\> \>\>\> \# Run 3 retries with exponential backoff strategy \>\>\> retry = Retry(ExponentialBackoff(), 3) \>\>\> \# Redis Cluster client with retries \>\>\> rc = RedisCluster(host='localhost', port=6379, retry=retry, cluster\_error\_retry\_attempts=2)
+
+Retry behaviour in Redis Cluster is a little bit different from Standalone:
+
+  - `retry`: <span class="title-ref">\~.Retry</span> instance with a \[backoff-label\](\#backoff-label) strategy and the max number of retries, default value is `Retry(NoBackoff(), 0)`
+  - `cluster_error_retry_attempts`: number of times to retry before raising an error when <span class="title-ref">\~.TimeoutError</span> or <span class="title-ref">\~.ConnectionError</span> or <span class="title-ref">\~.ClusterDownError</span> are encountered, default value is `3`
+
+Let's consider the following example:
+
+\>\>\> from redis.backoff import ExponentialBackoff \>\>\> from redis.retry import Retry \>\>\> from redis.cluster import RedisCluster \>\>\> \>\>\> rc = RedisCluster(host='localhost', port=6379, retry=Retry(ExponentialBackoff(), 6), cluster\_error\_retry\_attempts=1) \>\>\> rc.set('foo', 'bar')
+
+1.  the client library calculates the hash slot for key 'foo'.
+2.  given the hash slot, it then determines which node to connect to, in order to execute the command.
+3.  during the connection, a <span class="title-ref">\~.ConnectionError</span> is raised.
+4.  because we set `retry=Retry(ExponentialBackoff(), 6)`, the client tries to reconnect to the node up to 6 times, with an exponential backoff between each attempt.
+5.  even after 6 retries, the client is still unable to connect.
+6.  because we set `cluster_error_retry_attempts=1`, before giving up, the client starts a cluster update, removes the failed node from the startup nodes, and re-initializes the cluster.
+7.  after the cluster has been re-initialized, it starts a new cycle of retries, up to 6 retries, with an exponential backoff.
+8.  if the client can connect, we're good. Otherwise, the exception is finally raised to the caller, because we've run out of attempts.
+
+---
+
+CONTRIBUTING.md
+
+---
+
+# Contributing
+
+## Introduction
+
+We appreciate your interest in considering contributing to redis-py.
+Community contributions mean a lot to us.
+
+## Contributions we need
+
+You may already know how you'd like to contribute, whether it's a fix for a bug you
+encountered, or a new feature your team wants to use.
+
+If you don't know where to start, consider improving
+documentation, bug triaging, and writing tutorials are all examples of
+helpful contributions that mean less work for you.
+
+## Your First Contribution
+
+Unsure where to begin contributing? You can start by looking through
+[help-wanted
+issues](https://github.com/andymccurdy/redis-py/issues?q=is%3Aopen+is%3Aissue+label%3ahelp-wanted).
+
+Never contributed to open source before? Here are a couple of friendly
+tutorials:
+
+-   <http://makeapullrequest.com/>
+-   <http://www.firsttimersonly.com/>
+
+## Getting Started
+
+Here's how to get started with your code contribution:
+
+1.  Create your own fork of redis-py
+2.  Do the changes in your fork
+3.
+    *Create a virtualenv and install the development dependencies from the dev_requirements.txt file:*
+
+        a.  python -m venv .venv
+        b.  source .venv/bin/activate
+        c.  pip install -r dev_requirements.txt
+        c.  pip install -r requirements.txt
+
+4.  If you need a development environment, run `invoke devenv`. Note: this relies on docker-compose to build environments, and assumes that you have a version supporting [docker profiles](https://docs.docker.com/compose/profiles/).
+5.  While developing, make sure the tests pass by running `invoke tests`
+6.  If you like the change and think the project could use it, send a
+    pull request
+
+To see what else is part of the automation, run `invoke -l`
+
+## The Development Environment
+
+Running `invoke devenv` installs the development dependencies specified
+in the dev_requirements.txt. It starts all of the dockers used by this
+project, and leaves them running. These can be easily cleaned up with
+`invoke clean`. NOTE: it is assumed that the user running these tests,
+can execute docker and its various commands.
+
+-   A master Redis node
+-   A Redis replica node
+-   Three sentinel Redis nodes
+-   A redis cluster
+-   An stunnel docker, fronting the master Redis node
+
+The replica node, is a replica of the master node, using the
+[leader-follower replication](https://redis.io/topics/replication)
+feature.
+
+The sentinels monitor the master node in a [sentinel high-availability
+configuration](https://redis.io/topics/sentinel).
+
+## Testing
+
+Call `invoke tests` to run all tests, or `invoke all-tests` to run linters
+tests as well. With the 'tests' and 'all-tests' targets, all Redis and
+RedisCluster tests will be run.
+
+It is possible to run only Redis client tests (with cluster mode disabled) by
+using `invoke standalone-tests`; similarly, RedisCluster tests can be run by using
+`invoke cluster-tests`.
+
+Each run of tests starts and stops the various dockers required. Sometimes
+things get stuck, an `invoke clean` can help.
+
+## Documentation
+
+If relevant, update the code documentation, via docstrings, or in `/docs`.
+
+You can check how the documentation looks locally by running `invoke build-docs`
+and loading the generated HTML files in a browser.
+
+Historically there is a mix of styles in the docstrings, but the preferred way
+of documenting code is by applying the
+[Google style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html).
+Type hints should be added according to PEP484, and should not be repeated in
+the docstrings.
+
+### Docker Tips
+
+Following are a few tips that can help you work with the Docker-based
+development environment.
+
+To get a bash shell inside of a container:
+
+`$ docker run -it <service> /bin/bash`
+
+Containers run a minimal Debian image that probably lacks tools you want
+to use. To install packages, first get a bash session (see previous tip)
+and then run:
+
+`$ apt update && apt install <package>`
+
+You can see the logging output of a containers like this:
+
+`$ docker logs -f <service>`
+
+### Troubleshooting
+
+If you get any errors when running `make dev` or `make test`, make sure
+that you are using supported versions of Docker.
+
+Please try at least versions of Docker.
+
+-   Docker 19.03.12
+
+## How to Report a Bug
+
+### Security Vulnerabilities
+
+**NOTE**: If you find a security vulnerability, do NOT open an issue.
+Email [Redis Open Source (<oss@redis.com>)](mailto:oss@redis.com) instead.
+
+In order to determine whether you are dealing with a security issue, ask
+yourself these two questions:
+
+-   Can I access something that's not mine, or something I shouldn't
+    have access to?
+-   Can I disable something for other people?
+
+If the answer to either of those two questions are *yes*, then you're
+probably dealing with a security issue. Note that even if you answer
+*no*  to both questions, you may still be dealing with a security
+issue, so if you're unsure, just email [us](mailto:oss@redis.com).
+
+### Everything Else
+
+When filing an issue, make sure to answer these five questions:
+
+1.  What version of redis-py are you using?
+2.  What version of redis are you using?
+3.  What did you do?
+4.  What did you expect to see?
+5.  What did you see instead?
+
+## Suggest a feature or enhancement
+
+If you'd like to contribute a new feature, make sure you check our
+issue list to see if someone has already proposed it. Work may already
+be underway on the feature you want or we may have rejected a
+feature like it already.
+
+If you don't see anything, open a new issue that describes the feature
+you would like and how it should work.
+
+## Code review process
+
+The core team regularly looks at pull requests. We will provide
+feedback as soon as possible. After receiving our feedback, please respond
+within two weeks. After that time, we may close your PR if it isn't
+showing any activity.
+
+
+---
+
+README.md
+
+---
+
+# redis-py
+
+The Python interface to the Redis key-value store.
+
+[![CI](https://github.com/redis/redis-py/workflows/CI/badge.svg?branch=master)](https://github.com/redis/redis-py/actions?query=workflow%3ACI+branch%3Amaster)
+[![docs](https://readthedocs.org/projects/redis/badge/?version=stable&style=flat)](https://redis-py.readthedocs.io/en/stable/)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![pypi](https://badge.fury.io/py/redis.svg)](https://pypi.org/project/redis/)
+[![pre-release](https://img.shields.io/github/v/release/redis/redis-py?include_prereleases&label=latest-prerelease)](https://github.com/redis/redis-py/releases)
+[![codecov](https://codecov.io/gh/redis/redis-py/branch/master/graph/badge.svg?token=yenl5fzxxr)](https://codecov.io/gh/redis/redis-py)
+
+[Installation](#installation) |  [Usage](#usage) | [Advanced Topics](#advanced-topics) | [Contributing](https://github.com/redis/redis-py/blob/master/CONTRIBUTING.md)
+
+---------------------------------------------
+
+**Note: ** redis-py 5.0 will be the last version of redis-py to support Python 3.7, as it has reached [end of life](https://devguide.python.org/versions/). redis-py 5.1 will support Python 3.8+.
+
+---------------------------------------------
+
+## How do I Redis?
+
+[Learn for free at Redis University](https://redis.io/university/)
+
+[Try the Redis Cloud](https://redis.io/try-free/)
+
+[Dive in developer tutorials](https://redis.io/learn)
+
+[Join the Redis community](https://redis.io/community/)
+
+[Work at Redis](https://redis.io/careers/)
+
+## Installation
+
+Start a redis via docker:
+
+``` bash
+docker run -p 6379:6379 -it redis/redis-stack:latest
+```
+
+To install redis-py, simply:
+
+``` bash
+$ pip install redis
+```
+
+For faster performance, install redis with hiredis support, this provides a compiled response parser, and *for most cases* requires zero code changes.
+By default, if hiredis >= 1.0 is available, redis-py will attempt to use it for response parsing.
+
+``` bash
+$ pip install "redis[hiredis]"
+```
+
+Looking for a high-level library to handle object mapping? See [redis-om-python](https://github.com/redis/redis-om-python)!
+
+## Supported Redis Versions
+
+The most recent version of this library supports redis version [5.0](https://github.com/redis/redis/blob/5.0/00-RELEASENOTES), [6.0](https://github.com/redis/redis/blob/6.0/00-RELEASENOTES), [6.2](https://github.com/redis/redis/blob/6.2/00-RELEASENOTES), [7.0](https://github.com/redis/redis/blob/7.0/00-RELEASENOTES), [7.2](https://github.com/redis/redis/blob/7.2/00-RELEASENOTES) and [7.4](https://github.com/redis/redis/blob/7.4/00-RELEASENOTES).
+
+The table below highlights version compatibility of the most-recent library versions and redis versions.
+
+| Library version | Supported redis versions |
+|-----------------|-------------------|
+| 3.5.3 | <= 6.2 Family of releases |
+| >= 4.5.0 | Version 5.0 to 7.0 |
+| >= 5.0.0 | Version 5.0 to current |
+
+
+## Usage
+
+### Basic Example
+
+``` python
+>>> import redis
+>>> r = redis.Redis(host='localhost', port=6379, db=0)
+>>> r.set('foo', 'bar')
+True
+>>> r.get('foo')
+b'bar'
+```
+
+The above code connects to localhost on port 6379, sets a value in Redis, and retrieves it. All responses are returned as bytes in Python, to receive decoded strings, set *decode_responses=True*.  For this, and more connection options, see [these examples](https://redis.readthedocs.io/en/stable/examples.html).
+
+
+#### RESP3 Support
+To enable support for RESP3, ensure you have at least version 5.0 of the client, and change your connection object to include *protocol=3*
+
+``` python
+>>> import redis
+>>> r = redis.Redis(host='localhost', port=6379, db=0, protocol=3)
+```
+
+### Connection Pools
+
+By default, redis-py uses a connection pool to manage connections. Each instance of a Redis class receives its own connection pool. You can however define your own [redis.ConnectionPool](https://redis.readthedocs.io/en/stable/connections.html#connection-pools).
+
+``` python
+>>> pool = redis.ConnectionPool(host='localhost', port=6379, db=0)
+>>> r = redis.Redis(connection_pool=pool)
+```
+
+Alternatively, you might want to look at [Async connections](https://redis.readthedocs.io/en/stable/examples/asyncio_examples.html), or [Cluster connections](https://redis.readthedocs.io/en/stable/connections.html#cluster-client), or even [Async Cluster connections](https://redis.readthedocs.io/en/stable/connections.html#async-cluster-client).
+
+### Redis Commands
+
+There is built-in support for all of the [out-of-the-box Redis commands](https://redis.io/commands). They are exposed using the raw Redis command names (`HSET`, `HGETALL`, etc.) except where a word (i.e. del) is reserved by the language. The complete set of commands can be found [here](https://github.com/redis/redis-py/tree/master/redis/commands), or [the documentation](https://redis.readthedocs.io/en/stable/commands.html).
+
+## Advanced Topics
+
+The [official Redis command documentation](https://redis.io/commands)
+does a great job of explaining each command in detail. redis-py attempts
+to adhere to the official command syntax. There are a few exceptions:
+
+-   **MULTI/EXEC**: These are implemented as part of the Pipeline class.
+    The pipeline is wrapped with the MULTI and EXEC statements by
+    default when it is executed, which can be disabled by specifying
+    transaction=False. See more about Pipelines below.
+
+-   **SUBSCRIBE/LISTEN**: Similar to pipelines, PubSub is implemented as
+    a separate class as it places the underlying connection in a state
+    where it can\'t execute non-pubsub commands. Calling the pubsub
+    method from the Redis client will return a PubSub instance where you
+    can subscribe to channels and listen for messages. You can only call
+    PUBLISH from the Redis client (see [this comment on issue
+    #151](https://github.com/redis/redis-py/issues/151#issuecomment-1545015)
+    for details).
+
+For more details, please see the documentation on [advanced topics page](https://redis.readthedocs.io/en/stable/advanced_features.html).
+
+### Pipelines
+
+The following is a basic example of a [Redis pipeline](https://redis.io/docs/manual/pipelining/), a method to optimize round-trip calls, by batching Redis commands, and receiving their results as a list.
+
+
+``` python
+>>> pipe = r.pipeline()
+>>> pipe.set('foo', 5)
+>>> pipe.set('bar', 18.5)
+>>> pipe.set('blee', "hello world!")
+>>> pipe.execute()
+[True, True, True]
+```
+
+### PubSub
+
+The following example shows how to utilize [Redis Pub/Sub](https://redis.io/docs/manual/pubsub/) to subscribe to specific channels.
+
+``` python
+>>> r = redis.Redis(...)
+>>> p = r.pubsub()
+>>> p.subscribe('my-first-channel', 'my-second-channel', ...)
+>>> p.get_message()
+{'pattern': None, 'type': 'subscribe', 'channel': b'my-second-channel', 'data': 1}
+```
+
+
+--------------------------
+
+### Author
+
+redis-py is developed and maintained by [Redis Inc](https://redis.io). It can be found [here](
+https://github.com/redis/redis-py), or downloaded from [pypi](https://pypi.org/project/redis/).
+
+Special thanks to:
+
+-   Andy McCurdy (<sedrik@gmail.com>) the original author of redis-py.
+-   Ludovico Magnocavallo, author of the original Python Redis client,
+    from which some of the socket code is still used.
+-   Alexander Solovyov for ideas on the generic response callback
+    system.
+-   Paul Hubbard for initial packaging support.
+
+[![Redis](./docs/_static/logo-redis.svg)](https://redis.io)
+
+
+---
+
+dev_requirements.txt
+
+---
+
+black==24.3.0
+click==8.0.4
+flake8-isort
+flake8
+flynt~=0.69.0
+invoke==2.2.0
+mock
+packaging>=20.4
+pytest
+pytest-asyncio>=0.23.0,<0.24.0
+pytest-cov
+pytest-profiling==1.7.0
+pytest-timeout
+ujson>=4.2.0
+uvloop
+vulture>=2.3.0
+wheel>=0.30.0
+numpy>=1.24.0

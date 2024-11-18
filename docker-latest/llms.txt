@@ -1,0 +1,1639 @@
+api.md
+
+---
+
+# Low-level API
+
+The main object-orientated API is built on top of :py\`APIClient\`. Each method on :py\`APIClient\` maps one-to-one with a REST API endpoint, and returns the response that the API responds with.
+
+It's possible to use :py\`APIClient\` directly. Some basic things (e.g. running a container) consist of several API calls and are complex to do with the low-level API, but it's useful if you need extra flexibility and power.
+
+<div class="autoclass">
+
+docker.api.client.APIClient
+
+</div>
+
+## Configs
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+ConfigApiMixin
+
+</div>
+
+## Containers
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+ContainerApiMixin
+
+</div>
+
+## Images
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+ImageApiMixin
+
+</div>
+
+## Building images
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+BuildApiMixin
+
+</div>
+
+## Networks
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+docker.api.network.NetworkApiMixin
+
+</div>
+
+## Volumes
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+VolumeApiMixin
+
+</div>
+
+## Executing commands in containers
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+ExecApiMixin
+
+</div>
+
+## Swarms
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+SwarmApiMixin
+
+</div>
+
+## Services
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+ServiceApiMixin
+
+</div>
+
+## Plugins
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+PluginApiMixin
+
+</div>
+
+## Secrets
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+SecretApiMixin
+
+</div>
+
+## The Docker daemon
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass" data-members="" data-undoc-members="">
+
+DaemonApiMixin
+
+</div>
+
+## Configuration types
+
+<div class="autoclass">
+
+ConfigReference
+
+</div>
+
+<div class="autoclass">
+
+ContainerSpec
+
+</div>
+
+<div class="autoclass">
+
+DNSConfig
+
+</div>
+
+<div class="autoclass">
+
+DriverConfig
+
+</div>
+
+<div class="autoclass">
+
+EndpointSpec
+
+</div>
+
+<div class="autoclass">
+
+Healthcheck
+
+</div>
+
+<div class="autoclass">
+
+IPAMConfig
+
+</div>
+
+<div class="autoclass">
+
+IPAMPool
+
+</div>
+
+<div class="autoclass">
+
+LogConfig
+
+</div>
+
+<div class="autoclass">
+
+Mount
+
+</div>
+
+<div class="autoclass">
+
+NetworkAttachmentConfig
+
+</div>
+
+<div class="autoclass">
+
+Placement
+
+</div>
+
+<div class="autoclass">
+
+PlacementPreference
+
+</div>
+
+<div class="autoclass">
+
+Privileges
+
+</div>
+
+<div class="autoclass">
+
+Resources
+
+</div>
+
+<div class="autoclass">
+
+RestartPolicy
+
+</div>
+
+<div class="autoclass">
+
+RollbackConfig
+
+</div>
+
+<div class="autoclass">
+
+SecretReference
+
+</div>
+
+<div class="autoclass">
+
+ServiceMode
+
+</div>
+
+<div class="autoclass">
+
+SwarmExternalCA
+
+</div>
+
+<div class="autoclass">
+
+SwarmSpec(*args,*\*kwargs)
+
+</div>
+
+<div class="autoclass">
+
+TaskTemplate
+
+</div>
+
+<div class="autoclass">
+
+Ulimit
+
+</div>
+
+<div class="autoclass">
+
+UpdateConfig
+
+</div>
+
+---
+
+client.md
+
+---
+
+# Client
+
+## Creating a client
+
+To communicate with the Docker daemon, you first need to instantiate a client. The easiest way to do that is by calling the function :py\`\~docker.client.from\_env\`. It can also be configured manually by instantiating a :py\`\~docker.client.DockerClient\` class.
+
+<div class="autofunction">
+
+from\_env()
+
+</div>
+
+## Client reference
+
+<div class="autoclass">
+
+DockerClient()
+
+<div class="autoattribute">
+
+configs
+
+</div>
+
+<div class="autoattribute">
+
+containers
+
+</div>
+
+<div class="autoattribute">
+
+images
+
+</div>
+
+<div class="autoattribute">
+
+networks
+
+</div>
+
+<div class="autoattribute">
+
+nodes
+
+</div>
+
+<div class="autoattribute">
+
+plugins
+
+</div>
+
+<div class="autoattribute">
+
+secrets
+
+</div>
+
+<div class="autoattribute">
+
+services
+
+</div>
+
+<div class="autoattribute">
+
+swarm
+
+</div>
+
+<div class="autoattribute">
+
+volumes
+
+</div>
+
+<div class="automethod">
+
+close()
+
+</div>
+
+<div class="automethod">
+
+df()
+
+</div>
+
+<div class="automethod">
+
+events()
+
+</div>
+
+<div class="automethod">
+
+info()
+
+</div>
+
+<div class="automethod">
+
+login()
+
+</div>
+
+<div class="automethod">
+
+ping()
+
+</div>
+
+<div class="automethod">
+
+version()
+
+</div>
+
+</div>
+
+---
+
+configs.md
+
+---
+
+# Configs
+
+Manage configs on the server.
+
+Methods available on `client.configs`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+## Config objects
+
+<div class="autoclass">
+
+Config()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+name
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+<div class="automethod">
+
+remove
+
+</div>
+
+</div>
+
+---
+
+containers.md
+
+---
+
+# Containers
+
+Run and manage containers on the server.
+
+Methods available on `client.containers`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+<div class="autoclass">
+
+ContainerCollection
+
+<div class="automethod">
+
+run(image, command=None, \*\*kwargs)
+
+</div>
+
+<div class="automethod">
+
+create(image, command=None, \*\*kwargs)
+
+</div>
+
+<div class="automethod">
+
+get(id\_or\_name)
+
+</div>
+
+<div class="automethod">
+
+list(\*\*kwargs)
+
+</div>
+
+<div class="automethod">
+
+prune
+
+</div>
+
+</div>
+
+## Container objects
+
+<div class="autoclass">
+
+Container()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+image
+
+</div>
+
+<div class="autoattribute">
+
+labels
+
+</div>
+
+<div class="autoattribute">
+
+name
+
+</div>
+
+<div class="autoattribute">
+
+short\_id
+
+</div>
+
+<div class="autoattribute">
+
+status
+
+The raw representation of this object from the server.
+
+</div>
+
+<div class="automethod">
+
+attach
+
+</div>
+
+<div class="automethod">
+
+attach\_socket
+
+</div>
+
+<div class="automethod">
+
+commit
+
+</div>
+
+<div class="automethod">
+
+diff
+
+</div>
+
+<div class="automethod">
+
+exec\_run
+
+</div>
+
+<div class="automethod">
+
+export
+
+</div>
+
+<div class="automethod">
+
+get\_archive
+
+</div>
+
+<div class="automethod">
+
+kill
+
+</div>
+
+<div class="automethod">
+
+logs
+
+</div>
+
+<div class="automethod">
+
+pause
+
+</div>
+
+<div class="automethod">
+
+put\_archive
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+<div class="automethod">
+
+remove
+
+</div>
+
+<div class="automethod">
+
+rename
+
+</div>
+
+<div class="automethod">
+
+resize
+
+</div>
+
+<div class="automethod">
+
+restart
+
+</div>
+
+<div class="automethod">
+
+start
+
+</div>
+
+<div class="automethod">
+
+stats
+
+</div>
+
+<div class="automethod">
+
+stop
+
+</div>
+
+<div class="automethod">
+
+top
+
+</div>
+
+<div class="automethod">
+
+unpause
+
+</div>
+
+<div class="automethod">
+
+update
+
+</div>
+
+<div class="automethod">
+
+wait
+
+</div>
+
+</div>
+
+---
+
+images.md
+
+---
+
+# Images
+
+Manage images on the server.
+
+Methods available on `client.images`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+## Image objects
+
+<div class="autoclass">
+
+Image()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+labels
+
+</div>
+
+<div class="autoattribute">
+
+short\_id
+
+</div>
+
+<div class="autoattribute">
+
+tags
+
+</div>
+
+<div class="automethod">
+
+history
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+<div class="automethod">
+
+save
+
+</div>
+
+<div class="automethod">
+
+tag
+
+</div>
+
+</div>
+
+## RegistryData objects
+
+<div class="autoclass">
+
+RegistryData()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+short\_id
+
+</div>
+
+<div class="automethod">
+
+has\_platform
+
+</div>
+
+<div class="automethod">
+
+pull
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+</div>
+
+---
+
+index.md
+
+---
+
+# Docker SDK for Python
+
+A Python library for the Docker Engine API. It lets you do anything the `docker` command does, but from within Python apps – run containers, manage containers, manage Swarms, etc.
+
+For more information about the Engine API, [see its documentation](https://docs.docker.com/engine/reference/api/docker_remote_api/).
+
+## Installation
+
+The latest stable version [is available on PyPI](https://pypi.python.org/pypi/docker/). Either add `docker` to your `requirements.txt` file or install with pip:
+
+    pip install docker
+
+## Getting started
+
+To talk to a Docker daemon, you first need to instantiate a client. You can use :py\`\~docker.client.from\_env\` to connect using the default socket or the configuration in your environment:
+
+`` `python   import docker   client = docker.from_env()  You can now run containers:  .. code-block:: python    >>> client.containers.run("ubuntu", "echo hello world")   'hello world\n'  You can run containers in the background:  .. code-block:: python    >>> client.containers.run("bfirsh/reticulate-splines", detach=True)   <Container '45e6d2de7c54'>  You can manage containers:  .. code-block:: python    >>> client.containers.list()   [<Container '45e6d2de7c54'>, <Container 'db18e4f20eaa'>, ...]    >>> container = client.containers.get('45e6d2de7c54')    >>> container.attrs['Config']['Image']   "bfirsh/reticulate-splines"    >>> container.logs()   "Reticulating spline 1...\n"    >>> container.stop()  You can stream logs:  .. code-block:: python    >>> for line in container.logs(stream=True):   ...   print(line.strip())   Reticulating spline 2...   Reticulating spline 3...   ...  You can manage images:  .. code-block:: python    >>> client.images.pull('nginx')   <Image 'nginx'>    >>> client.images.list()   [<Image 'ubuntu'>, <Image 'nginx'>, ...]  That's just a taste of what you can do with the Docker SDK for Python. For more, [take a look at the reference <client>](take a look at the reference <client>.md).  .. toctree::   :hidden:   :maxdepth: 2    client   configs   containers   images   networks   nodes   plugins   secrets   services   swarm   volumes   api   tls   user_guides/index   change-log ``\`
+
+---
+
+networks.md
+
+---
+
+# Networks
+
+Create and manage networks on the server. For more information about networks, [see the Engine documentation](https://docs.docker.com/engine/userguide/networking/).
+
+Methods available on `client.networks`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+## Network objects
+
+<div class="autoclass">
+
+Network()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+short\_id
+
+</div>
+
+<div class="autoattribute">
+
+name
+
+</div>
+
+<div class="autoattribute">
+
+containers
+
+</div>
+
+<div class="automethod">
+
+connect
+
+</div>
+
+<div class="automethod">
+
+disconnect
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+<div class="automethod">
+
+remove
+
+</div>
+
+</div>
+
+---
+
+nodes.md
+
+---
+
+# Nodes
+
+Get and list nodes in a swarm. Before you can use these methods, you first need to \[join or initialize a swarm \<swarm\>\](join or initialize a swarm \<swarm\>.md).
+
+Methods available on `client.nodes`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+## Node objects
+
+<div class="autoclass">
+
+Node()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+short\_id
+
+</div>
+
+<div class="autoattribute">
+
+version
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+<div class="automethod">
+
+update
+
+</div>
+
+</div>
+
+---
+
+plugins.md
+
+---
+
+# Plugins
+
+Manage plugins on the server.
+
+Methods available on `client.plugins`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+## Plugin objects
+
+<div class="autoclass">
+
+Plugin()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+short\_id
+
+</div>
+
+<div class="autoattribute">
+
+name
+
+</div>
+
+<div class="autoattribute">
+
+enabled
+
+</div>
+
+<div class="autoattribute">
+
+settings
+
+</div>
+
+<div class="automethod">
+
+configure
+
+</div>
+
+<div class="automethod">
+
+disable
+
+</div>
+
+<div class="automethod">
+
+enable
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+<div class="automethod">
+
+push
+
+</div>
+
+<div class="automethod">
+
+remove
+
+</div>
+
+<div class="automethod">
+
+upgrade
+
+</div>
+
+</div>
+
+---
+
+secrets.md
+
+---
+
+# Secrets
+
+Manage secrets on the server.
+
+Methods available on `client.secrets`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+## Secret objects
+
+<div class="autoclass">
+
+Secret()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+name
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+<div class="automethod">
+
+remove
+
+</div>
+
+</div>
+
+---
+
+services.md
+
+---
+
+# Services
+
+Manage services on a swarm. For more information about services, [see the Engine documentation](https://docs.docker.com/engine/swarm/services/).
+
+Before you can use any of these methods, you first need to \[join or initialize a swarm \<swarm\>\](join or initialize a swarm \<swarm\>.md).
+
+Methods available on `client.services`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+## Service objects
+
+<div class="autoclass">
+
+Service()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+short\_id
+
+</div>
+
+<div class="autoattribute">
+
+name
+
+</div>
+
+<div class="autoattribute">
+
+version
+
+</div>
+
+<div class="automethod">
+
+force\_update
+
+</div>
+
+<div class="automethod">
+
+logs
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+<div class="automethod">
+
+remove
+
+</div>
+
+<div class="automethod">
+
+scale
+
+</div>
+
+<div class="automethod">
+
+tasks
+
+</div>
+
+<div class="automethod">
+
+update
+
+</div>
+
+</div>
+
+---
+
+swarm.md
+
+---
+
+# Swarm
+
+Manage [Docker Engine's swarm mode](https://docs.docker.com/engine/swarm/).
+
+To use any swarm methods, you first need to make the Engine part of a swarm. This can be done by either initializing a new swarm with :py\`\~Swarm.init\`, or joining an existing swarm with :py\`\~Swarm.join\`.
+
+These methods are available on `client.swarm`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+---
+
+tls.md
+
+---
+
+# Using TLS
+
+Both the main :py\`\~docker.client.DockerClient\` and low-level :py\`\~docker.api.client.APIClient\` can connect to the Docker daemon with TLS.
+
+This is all configured automatically for you if you're using :py\`\~docker.client.from\_env\`, but if you need some extra control it is possible to configure it manually by using a :py\`TLSConfig\` object.
+
+## Examples
+
+For example, to check the server against a specific CA certificate:
+
+`` `python   tls_config = docker.tls.TLSConfig(ca_cert='/path/to/ca.pem', verify=True)   client = docker.DockerClient(base_url='<https_url>', tls=tls_config)  This is the equivalent of ``docker --tlsverify --tlscacert /path/to/ca.pem ...`.  To authenticate with client certs:  .. code-block:: python    tls_config = docker.tls.TLSConfig(     client_cert=('/path/to/client-cert.pem', '/path/to/client-key.pem')   )   client = docker.DockerClient(base_url='<https_url>', tls=tls_config)  This is the equivalent of`docker --tls --tlscert /path/to/client-cert.pem --tlskey /path/to/client-key.pem ...`.  Reference`\` ---------
+
+<div class="autoclass">
+
+TLSConfig()
+
+</div>
+
+---
+
+index.md
+
+---
+
+# User guides and tutorials
+
+<div class="toctree" data-maxdepth="2">
+
+multiplex swarm\_services
+
+</div>
+
+---
+
+multiplex.md
+
+---
+
+# Handling multiplexed streams
+
+<div class="note">
+
+<div class="title">
+
+Note
+
+</div>
+
+The following instruction assume you're interested in getting output from an `exec` command. These instruction are similarly applicable to the output of `attach`.
+
+</div>
+
+First create a container that runs in the background:
+
+\>\>\> client = docker.from\_env() \>\>\> container = client.containers.run( ... 'bfirsh/reticulate-splines', detach=True)
+
+Prepare the command we are going to use. It prints "hello stdout" in <span class="title-ref">stdout</span>, followed by "hello stderr" in \`stderr\`:
+
+\>\>\> cmd = '/bin/sh -c "echo hello stdout ; echo hello stderr \>&2"'
+
+We'll run this command with all four the combinations of `stream` and `demux`.
+
+With `stream=False` and `demux=False`, the output is a string that contains both the <span class="title-ref">stdout</span> and the <span class="title-ref">stderr</span> output:
+
+\>\>\> res = container.exec\_run(cmd, stream=False, demux=False) \>\>\> res.output b'hello stderrnhello stdoutn'
+
+With `stream=True`, and `demux=False`, the output is a generator that yields strings containing the output of both <span class="title-ref">stdout</span> and \`stderr\`:
+
+\>\>\> res = container.exec\_run(cmd, stream=True, demux=False) \>\>\> next(res.output) b'hello stdoutn' \>\>\> next(res.output) b'hello stderrn' \>\>\> next(res.output) Traceback (most recent call last): File "\<stdin\>", line 1, in \<module\> StopIteration
+
+With `stream=True` and `demux=True`, the generator now separates the streams, and yield tuples `(stdout, stderr)`:
+
+\>\>\> res = container.exec\_run(cmd, stream=True, demux=True) \>\>\> next(res.output) (b'hello stdoutn', None) \>\>\> next(res.output) (None, b'hello stderrn') \>\>\> next(res.output) Traceback (most recent call last): File "\<stdin\>", line 1, in \<module\> StopIteration
+
+Finally, with `stream=False` and `demux=True`, the output is a tuple `(stdout, stderr)`:
+
+\>\>\> res = container.exec\_run(cmd, stream=False, demux=True) \>\>\> res.output (b'hello stdoutn', b'hello stderrn')
+
+---
+
+volumes.md
+
+---
+
+# Volumes
+
+Manage volumes on the server.
+
+Methods available on `client.volumes`:
+
+<div class="rst-class">
+
+hide-signature
+
+</div>
+
+## Volume objects
+
+<div class="autoclass">
+
+Volume()
+
+<div class="autoattribute">
+
+id
+
+</div>
+
+<div class="autoattribute">
+
+short\_id
+
+</div>
+
+<div class="autoattribute">
+
+name
+
+</div>
+
+<div class="automethod">
+
+reload
+
+</div>
+
+<div class="automethod">
+
+remove
+
+</div>
+
+</div>
+
+---
+
+CONTRIBUTING.md
+
+---
+
+# Contributing guidelines
+
+See the [Docker contributing guidelines](https://github.com/docker/docker/blob/master/CONTRIBUTING.md).
+The following is specific to Docker SDK for Python.
+
+Thank you for your interest in the project. We look forward to your
+contribution. In order to make the process as fast and streamlined as possible,
+here is a set of guidelines we recommend you follow.
+
+## Reporting issues
+
+We do our best to ensure bugs don't creep up in our releases, but some may
+still slip through. If you encounter one while using the SDK, please
+create an issue
+[in the tracker](https://github.com/docker/docker-py/issues/new) with
+the following information:
+
+- SDK version, Docker version and python version
+```
+pip freeze | grep docker && python --version && docker version
+```
+- OS, distribution and OS version
+- The issue you're encountering including a stacktrace if applicable
+- If possible, steps or a code snippet to reproduce the issue
+
+To save yourself time, please be sure to check our
+[documentation](https://docker-py.readthedocs.io/) and use the
+[search function](https://github.com/docker/docker-py/search) to find
+out if it has already been addressed, or is currently being looked at.
+
+## Submitting pull requests
+
+Do you have a fix for an existing issue, or want to add a new functionality
+to the SDK? We happily welcome pull requests. Here are a few tips to
+make the review process easier on both the maintainers and yourself.
+
+### 1. Sign your commits
+
+Please refer to the ["Sign your work"](https://github.com/docker/docker/blob/master/CONTRIBUTING.md#sign-your-work)
+paragraph in the Docker contribution guidelines.
+
+### 2. Make sure tests pass
+
+Before we can review your pull request, please ensure that nothing has been
+broken by your changes by running the test suite. You can do so simply by
+running `make test` in the project root. This also includes coding style using
+`ruff`
+
+### 3. Write clear, self-contained commits
+
+Your commit message should be concise and describe the nature of the change.
+The commit itself should make sense in isolation from the others in your PR.
+Specifically, one should be able to review your commit separately from the
+context.
+
+### 4. Rebase proactively
+
+It's much easier to review a pull request that is up to date against the
+current master branch.
+
+### 5. Notify thread subscribers when changes are made
+
+GitHub doesn't notify subscribers when new commits happen on a PR, and
+fixes or additions might be missed. Please add a comment to the PR thread
+when you push new changes.
+
+### 6. Two maintainers LGTM are required for merging
+
+Please wait for review and approval of two maintainers, and respond to their
+comments and suggestions during review.
+
+### 7. Add tests
+
+Whether you're adding new functionality to the project or fixing a bug, please
+add relevant tests to ensure the code you added continues to work as the
+project evolves.
+
+### 8. Add docs
+
+This usually applies to new features rather than bug fixes, but new behavior
+should always be documented.
+
+### 9. Ask questions
+
+If you're ever confused about something pertaining to the project, feel free
+to reach out and ask questions. We will do our best to answer and help out.
+
+
+## Development environment
+
+If you're looking contribute to Docker SDK for Python but are new to the
+project or Python, here are the steps to get you started.
+
+1. Fork https://github.com/docker/docker-py to your username.
+2. Clone your forked repository locally with
+  `git clone git@github.com:yourusername/docker-py.git`.
+3. Configure a
+  [remote](https://help.github.com/articles/configuring-a-remote-for-a-fork/)
+  for your fork so that you can
+  [sync changes you make](https://help.github.com/articles/syncing-a-fork/)
+  with the original repository.
+4. Enter the local directory `cd docker-py`.
+5. Run `python setup.py develop` to install the dev version of the project
+  and required dependencies. We recommend you do so inside a
+  [virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs)
+
+## Running the tests & Code Quality
+
+To get the source source code and run the unit tests, run:
+```
+$ git clone git://github.com/docker/docker-py.git
+$ cd docker-py
+$ make test
+```
+
+## Building the docs
+
+```
+$ make docs
+$ open _build/index.html
+```
+
+## Release Checklist
+
+Before a new release, please go through the following checklist:
+
+* Bump version in docker/version.py
+* Add a release note in docs/change_log.md
+* Git tag the version
+* Upload to pypi
+
+## Vulnerability Reporting
+For any security issues, please do NOT file an issue or pull request on github!
+Please contact [security@docker.com](mailto:security@docker.com) or read [the
+Docker security page](https://www.docker.com/resources/security/).
+
+
+---
+
+README.md
+
+---
+
+# Docker SDK for Python
+
+[![Build Status](https://github.com/docker/docker-py/actions/workflows/ci.yml/badge.svg)](https://github.com/docker/docker-py/actions/workflows/ci.yml)
+
+A Python library for the Docker Engine API. It lets you do anything the `docker` command does, but from within Python apps – run containers, manage containers, manage Swarms, etc.
+
+## Installation
+
+The latest stable version [is available on PyPI](https://pypi.python.org/pypi/docker/). Install with pip:
+
+    pip install docker
+
+> Older versions (< 6.0) required installing `docker[tls]` for SSL/TLS support.
+> This is no longer necessary and is a no-op, but is supported for backwards compatibility.
+
+## Usage
+
+Connect to Docker using the default socket or the configuration in your environment:
+
+```python
+import docker
+client = docker.from_env()
+```
+
+You can run containers:
+
+```python
+>>> client.containers.run("ubuntu:latest", "echo hello world")
+'hello world\n'
+```
+
+You can run containers in the background:
+
+```python
+>>> client.containers.run("bfirsh/reticulate-splines", detach=True)
+<Container '45e6d2de7c54'>
+```
+
+You can manage containers:
+
+```python
+>>> client.containers.list()
+[<Container '45e6d2de7c54'>, <Container 'db18e4f20eaa'>, ...]
+
+>>> container = client.containers.get('45e6d2de7c54')
+
+>>> container.attrs['Config']['Image']
+"bfirsh/reticulate-splines"
+
+>>> container.logs()
+"Reticulating spline 1...\n"
+
+>>> container.stop()
+```
+
+You can stream logs:
+
+```python
+>>> for line in container.logs(stream=True):
+...   print(line.strip())
+Reticulating spline 2...
+Reticulating spline 3...
+...
+```
+
+You can manage images:
+
+```python
+>>> client.images.pull('nginx')
+<Image 'nginx'>
+
+>>> client.images.list()
+[<Image 'ubuntu'>, <Image 'nginx'>, ...]
+```
+
+[Read the full documentation](https://docker-py.readthedocs.io) to see everything you can do.

@@ -12,6 +12,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
     - uses: actions/checkout@v4
@@ -35,8 +37,14 @@ jobs:
       run: |
         uv run docs --config docs.toml
         
-    - name: Upload data directory as artifact
-      uses: actions/upload-artifact@v4
+    - name: Publish documentation
+      run: |
+        uv run publish --data-dir data --output-dir site
+
+    - name: Deploy to GitHub Pages
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
       with:
-        name: data-artifacts
-        path: data/
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./site
+        force_orphan: true

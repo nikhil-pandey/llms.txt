@@ -29,7 +29,8 @@ class FileSystemStorage:
     async def store(self, doc: ProcessedDoc) -> str:
         try:
             # Create package directory
-            package_dir = self.base_path / f"{doc.package.name}-{doc.package.version}"
+            # Add multiple versions later. Skip for now.
+            package_dir = self.base_path / f"{doc.package.name}-latest"
             package_dir.mkdir(parents=True, exist_ok=True)
 
             # Store metadata including repo info, package info, and processing info

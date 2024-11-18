@@ -96,11 +96,12 @@ class MkDocsProcessor(BaseProcessor):
 
         def process_nav_item(item):
             if isinstance(item, str):
-                if item.endswith(".md"):
+                # Check for both MD and RST files
+                if item.endswith((".md", ".rst")):
                     content[item] = self._read_markdown_file(docs_dir / item)
             elif isinstance(item, dict):
                 for title, nav_content in item.items():
-                    if isinstance(nav_content, str) and nav_content.endswith(".md"):
+                    if isinstance(nav_content, str) and nav_content.endswith((".md", ".rst")):
                         content[nav_content] = self._read_markdown_file(
                             docs_dir / nav_content
                         )
@@ -114,7 +115,7 @@ class MkDocsProcessor(BaseProcessor):
         return content
 
     def _read_markdown_file(self, file_path: Path) -> str:
-        """Read and process a markdown file"""
+        """Read and process a markdown or RST file"""
         try:
             if not file_path.exists():
                 logger.warning(f"File not found: {file_path}")
@@ -128,6 +129,10 @@ class MkDocsProcessor(BaseProcessor):
 
             # Process relative links
             content = self._fix_relative_links(content, file_path)
+
+            # Convert RST to Markdown if needed
+            if file_path.suffix.lower() in {".rst", ".rest"}:
+                content = self.convert_rst_to_markdown(content, file_path)
 
             return content
 

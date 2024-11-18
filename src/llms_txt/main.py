@@ -40,10 +40,15 @@ def parse_package_spec(
     """Parse package specification string into PackageSpec"""
     # Handle direct URLs
     if spec.startswith(("http://", "https://")):
-        return PackageSpec(
-            name=Path(urlparse(spec).path).name, registry=RegistryType.HTTP, url=spec
-        )
-
+        # Check if URL ends with supported extensions
+        path = urlparse(spec).path.lower()
+        if path.endswith((".md", ".rst", ".txt")):
+            return PackageSpec(
+                name=Path(path).name, 
+                registry=RegistryType.HTTP, 
+                url=spec
+            )
+    
     # Handle local files
     if Path(spec).exists():
         return PackageSpec(
